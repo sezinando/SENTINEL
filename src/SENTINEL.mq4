@@ -1303,6 +1303,7 @@ input color InpStopColor      = clrRed;
 #define OBJ_LBL_SELECTED_1    PREFIX+"LBL_SELECTED_1"
 #define OBJ_LBL_SELECTED_2    PREFIX+"LBL_SELECTED_2"
 #define OBJ_LBL_SELECTED_CALC PREFIX+"LBL_SELECTED_CALC"
+#define OBJ_LBL_SELECTED_SOURCE PREFIX+"LBL_SELECTED_SOURCE"
 #define OBJ_LBL_SELECTED_EXPOSURE PREFIX+"LBL_SELECTED_EXPOSURE"
 #define OBJ_BTN_REDUCE_SELECTED PREFIX+"BTN_REDUCE_SELECTED"
 #define OBJ_BTN_CLEAR_SELECTED PREFIX+"BTN_CLEAR_SELECTED"
@@ -1428,7 +1429,20 @@ int GetSelectedTicket(int slot)
    string name=SelectedGlobalName(slot);
 
    if(!GlobalVariableCheck(name))
-      return -1;
+   {
+      // Cesta Manager com InpMagicNumber=-1 publica uma selecao
+      // generica do simbolo. O SENTINEL aceita esse fallback.
+      string fallback=
+         "SENTINEL_SELECTED_"+
+         Symbol()+
+         "_-1_"+
+         IntegerToString(slot);
+
+      if(!GlobalVariableCheck(fallback))
+         return -1;
+
+      name=fallback;
+   }
 
    int ticket=(int)GlobalVariableGet(name);
 
@@ -1442,6 +1456,22 @@ void ClearSelectedTickets()
 {
    GlobalVariableSet(SelectedGlobalName(1),0.0);
    GlobalVariableSet(SelectedGlobalName(2),0.0);
+
+   string fallbackPrefix=
+      "SENTINEL_SELECTED_"+
+      Symbol()+
+      "_-1_";
+
+   GlobalVariableSet(
+      fallbackPrefix+"1",
+      0.0
+   );
+
+   GlobalVariableSet(
+      fallbackPrefix+"2",
+      0.0
+   );
+
    GlobalVariablesFlush();
 }
 
@@ -1662,6 +1692,12 @@ void UpdateSelectedReductionPanel()
       );
 
       UpdateLabel(
+         OBJ_LBL_SELECTED_SOURCE,
+         "REF: --",
+         clrSilver
+      );
+
+      UpdateLabel(
          OBJ_LBL_SELECTED_EXPOSURE,
          "RED: -- | EXP: -- -> --",
          clrSilver
@@ -1736,6 +1772,22 @@ void UpdateSelectedReductionPanel()
       g_selectedTargetResult>=0.0 ?
       InpProfitColor :
       InpStopColor
+   );
+
+   string referenceText=
+      g_selectedReferenceTicket>0 ?
+      IntegerToString(g_selectedReferenceTicket)+
+      " "+SelectedTypeText(g_selectedReferenceTicket)+
+      " "+DoubleToString(g_selectedReferenceLots,2)+
+      " "+FormatMoney(g_selectedReferenceResult) :
+      "NAO DEFINIDA";
+
+   UpdateLabel(
+      OBJ_LBL_SELECTED_SOURCE,
+      "REF: "+referenceText,
+      g_selectedReferenceTicket>0 ?
+      InpProfitColor :
+      clrSilver
    );
 
    UpdateLabel(
@@ -7246,10 +7298,19 @@ void BuildInterface()
    );
 
    CreateLabel(
+      OBJ_LBL_SELECTED_SOURCE,
+      "REF: --",
+      10,
+      416,
+      8,
+      clrSilver
+   );
+
+   CreateLabel(
       OBJ_LBL_SELECTED_EXPOSURE,
       "RED: -- | EXP: -- -> --",
       10,
-      416,
+      432,
       8,
       clrSilver
    );
@@ -7258,7 +7319,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_SELECTED,
       "REDUCE SELECIONADO",
       10,
-      438,
+      450,
       270,
       24,
       clrDimGray
@@ -8456,6 +8517,7 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_LBL_SELECTED_1);
    DeleteObjectSafe(OBJ_LBL_SELECTED_2);
    DeleteObjectSafe(OBJ_LBL_SELECTED_CALC);
+   DeleteObjectSafe(OBJ_LBL_SELECTED_SOURCE);
    DeleteObjectSafe(OBJ_LBL_SELECTED_EXPOSURE);
    DeleteObjectSafe(OBJ_BTN_REDUCE_SELECTED);
    DeleteObjectSafe(OBJ_BTN_CLEAR_SELECTED);
