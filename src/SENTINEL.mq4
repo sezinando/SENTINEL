@@ -1307,6 +1307,12 @@ input color InpStopColor      = clrRed;
 #define OBJ_LBL_SELECTED_EXPOSURE PREFIX+"LBL_SELECTED_EXPOSURE"
 #define OBJ_BTN_REDUCE_SELECTED PREFIX+"BTN_REDUCE_SELECTED"
 #define OBJ_BTN_CLEAR_SELECTED PREFIX+"BTN_CLEAR_SELECTED"
+#define OBJ_LBL_GROUP_TITLE    PREFIX+"LBL_GROUP_TITLE"
+#define OBJ_LBL_GROUP_TARGET   PREFIX+"LBL_GROUP_TARGET"
+#define OBJ_LBL_GROUP_REFERENCE PREFIX+"LBL_GROUP_REFERENCE"
+#define OBJ_LBL_GROUP_NET      PREFIX+"LBL_GROUP_NET"
+#define OBJ_LBL_GROUP_EXPOSURE PREFIX+"LBL_GROUP_EXPOSURE"
+#define OBJ_LBL_GROUP_RESULT   PREFIX+"LBL_GROUP_RESULT"
 
 #define OBJ_LBL_STATUS         PREFIX+"LBL_STATUS"
 #define OBJ_LBL_CHART_PROFIT   PREFIX+"LBL_CHART_PROFIT"
@@ -1666,69 +1672,29 @@ void UpdateSelectedReductionPanel()
    int ticket1=GetSelectedTicket(1);
    int ticket2=GetSelectedTicket(2);
 
-   string t1=ticket1>0 ?
-      IntegerToString(ticket1) :
-      "--";
-
-   string t2=ticket2>0 ?
-      IntegerToString(ticket2) :
-      "--";
+   string t1=ticket1>0 ? IntegerToString(ticket1) : "--";
+   string t2=ticket2>0 ? IntegerToString(ticket2) : "--";
 
    if(ObjectFind(0,OBJ_EDIT_SELECTED_1)>=0)
-      ObjectSetString(
-         0,
-         OBJ_EDIT_SELECTED_1,
-         OBJPROP_TEXT,
-         t1
-      );
+      ObjectSetString(0,OBJ_EDIT_SELECTED_1,OBJPROP_TEXT,t1);
 
    if(ObjectFind(0,OBJ_EDIT_SELECTED_2)>=0)
-      ObjectSetString(
-         0,
-         OBJ_EDIT_SELECTED_2,
-         OBJPROP_TEXT,
-         t2
-      );
+      ObjectSetString(0,OBJ_EDIT_SELECTED_2,OBJPROP_TEXT,t2);
 
    bool valid=BuildSelectedReductionPlan();
 
    if(!valid)
    {
-      UpdateLabel(
-         OBJ_LBL_SELECTED_CALC,
-         ticket1<=0 ?
-         "SELECIONE ORDEM" :
-         "SELECAO NAO ELEGIVEL",
-         clrGold
-      );
-
-      UpdateLabel(
-         OBJ_LBL_SELECTED_SOURCE,
-         "REF: --",
-         clrSilver
-      );
-
-      UpdateLabel(
-         OBJ_LBL_SELECTED_EXPOSURE,
-         "RED: -- | EXP: -- -> --",
-         clrSilver
-      );
+      UpdateLabel(OBJ_LBL_GROUP_TARGET,"TARGET      --",clrGold);
+      UpdateLabel(OBJ_LBL_GROUP_REFERENCE,"REFERENCE   --",clrSilver);
+      UpdateLabel(OBJ_LBL_GROUP_NET,"GROUP NET   --",clrSilver);
+      UpdateLabel(OBJ_LBL_GROUP_EXPOSURE,"EXPOSURE    --",clrSilver);
+      UpdateLabel(OBJ_LBL_GROUP_RESULT,"RESULT      --",clrSilver);
 
       if(ObjectFind(0,OBJ_BTN_REDUCE_SELECTED)>=0)
       {
-         ObjectSetInteger(
-            0,
-            OBJ_BTN_REDUCE_SELECTED,
-            OBJPROP_BGCOLOR,
-            clrDimGray
-         );
-
-         ObjectSetString(
-            0,
-            OBJ_BTN_REDUCE_SELECTED,
-            OBJPROP_TEXT,
-            "REDUCE SELECIONADO"
-         );
+         ObjectSetInteger(0,OBJ_BTN_REDUCE_SELECTED,OBJPROP_BGCOLOR,clrDimGray);
+         ObjectSetString(0,OBJ_BTN_REDUCE_SELECTED,OBJPROP_TEXT,"REDUCE GROUP");
       }
 
       return;
@@ -1737,20 +1703,19 @@ void UpdateSelectedReductionPanel()
    double buyBefore=GetBuyLots();
    double sellBefore=GetSellLots();
    double exposureBefore=buyBefore+sellBefore;
-
    double buyAfter=buyBefore;
    double sellAfter=sellBefore;
 
    int targetType=-1;
-   double tmpLots=0.0;
-   double tmpResult=0.0;
+   double targetLiveLots=0.0;
+   double targetLiveResult=0.0;
 
-   GetSelectedOrderSnapshot(
+   if(!GetSelectedOrderSnapshot(
       g_selectedTargetTicket,
       targetType,
-      tmpLots,
-      tmpResult
-   );
+      targetLiveLots,
+      targetLiveResult))
+      return;
 
    if(targetType==OP_BUY)
       buyAfter-=g_selectedReduceLots;
@@ -1766,63 +1731,64 @@ void UpdateSelectedReductionPanel()
    double exposureAfter=buyAfter+sellAfter;
 
    string targetText=
-      IntegerToString(g_selectedTargetTicket)+
-      " "+SelectedTypeText(g_selectedTargetTicket)+
-      " "+
-      DoubleToString(g_selectedTargetLots,2)+
-      " -> "+
-      DoubleToString(
-         g_selectedTargetLots-g_selectedReduceLots,
-         2
-      );
+      "TARGET      T"+IntegerToString(g_selectedTargetTicket)+
+      "  "+SelectedTypeText(g_selectedTargetTicket)+
+      "  "+DoubleToString(g_selectedTargetLots,2)+
+      "  REDUCE "+DoubleToString(g_selectedReduceLots,2);
 
    UpdateLabel(
-      OBJ_LBL_SELECTED_CALC,
-      "ALVO: "+targetText+
-      " | RED: "+DoubleToString(g_selectedReduceLots,2),
-      g_selectedTargetResult>=0.0 ?
-      InpProfitColor :
-      InpStopColor
+      OBJ_LBL_GROUP_TARGET,
+      targetText,
+      g_selectedTargetResult<0.0 ? InpStopColor : InpProfitColor
    );
 
    string referenceText=
       g_selectedReferenceTicket>0 ?
-      IntegerToString(g_selectedReferenceTicket)+
-      " "+SelectedTypeText(g_selectedReferenceTicket)+
-      " "+DoubleToString(g_selectedReferenceLots,2)+
-      " "+FormatMoney(g_selectedReferenceResult) :
-      "NAO DEFINIDA";
+      "REFERENCE   T"+IntegerToString(g_selectedReferenceTicket)+
+      "  "+SelectedTypeText(g_selectedReferenceTicket)+
+      "  "+DoubleToString(g_selectedReferenceLots,2) :
+      "REFERENCE   --";
 
    UpdateLabel(
-      OBJ_LBL_SELECTED_SOURCE,
-      "REF: "+referenceText,
+      OBJ_LBL_GROUP_REFERENCE,
+      referenceText,
       g_selectedReferenceTicket>0 ?
-      InpProfitColor :
+      (g_selectedReferenceResult>=0.0 ? InpProfitColor : InpStopColor) :
       clrSilver
    );
 
    UpdateLabel(
-      OBJ_LBL_SELECTED_EXPOSURE,
-      "NET "+
+      OBJ_LBL_GROUP_NET,
+      "GROUP NET   "+
       DoubleToString(netBefore,2)+
       " -> "+
-      DoubleToString(netAfter,2)+
-      " | EXP "+
+      DoubleToString(netAfter,2),
+      netAfter>=0.0 ? InpProfitColor : InpStopColor
+   );
+
+   UpdateLabel(
+      OBJ_LBL_GROUP_EXPOSURE,
+      "EXPOSURE    "+
       DoubleToString(exposureBefore,2)+
       " -> "+
       DoubleToString(exposureAfter,2),
       clrSilver
    );
 
+   UpdateLabel(
+      OBJ_LBL_GROUP_RESULT,
+      "RESULT      "+FormatMoney(
+         g_selectedTargetResult+
+         g_selectedReferenceResult
+      ),
+      (g_selectedTargetResult+g_selectedReferenceResult)>=0.0 ?
+      InpProfitColor :
+      InpStopColor
+   );
+
    if(ObjectFind(0,OBJ_BTN_REDUCE_SELECTED)>=0)
    {
-      ObjectSetInteger(
-         0,
-         OBJ_BTN_REDUCE_SELECTED,
-         OBJPROP_BGCOLOR,
-         clrDarkGoldenrod
-      );
-
+      ObjectSetInteger(0,OBJ_BTN_REDUCE_SELECTED,OBJPROP_BGCOLOR,clrDarkGoldenrod);
       ObjectSetString(
          0,
          OBJ_BTN_REDUCE_SELECTED,
@@ -6328,7 +6294,7 @@ void CreatePanel()
       0,
       OBJ_PANEL,
       OBJPROP_YSIZE,
-      570
+      610
    );
 
    // Fundo totalmente opaco.
@@ -7424,14 +7390,24 @@ void BuildInterface()
    );
 
    //===============================================================
-   // SELECAO DE ORDENS - CESTA MANAGER
    //===============================================================
+   // CURRENT GROUP
+   //===============================================================
+
+   CreateLabel(
+      OBJ_LBL_GROUP_TITLE,
+      "CURRENT GROUP",
+      10,
+      376,
+      9,
+      clrWhite
+   );
 
    CreateLabel(
       OBJ_LBL_SELECTED_1,
       "T1",
       10,
-      378,
+      397,
       8,
       clrSilver
    );
@@ -7440,23 +7416,18 @@ void BuildInterface()
       OBJ_EDIT_SELECTED_1,
       "--",
       30,
-      374,
+      393,
       82,
       20
    );
 
-   ObjectSetInteger(
-      0,
-      OBJ_EDIT_SELECTED_1,
-      OBJPROP_READONLY,
-      true
-   );
+   ObjectSetInteger(0,OBJ_EDIT_SELECTED_1,OBJPROP_READONLY,true);
 
    CreateLabel(
       OBJ_LBL_SELECTED_2,
       "T2",
       120,
-      378,
+      397,
       8,
       clrSilver
    );
@@ -7465,66 +7436,78 @@ void BuildInterface()
       OBJ_EDIT_SELECTED_2,
       "--",
       140,
-      374,
+      393,
       82,
       20
    );
 
-   ObjectSetInteger(
-      0,
-      OBJ_EDIT_SELECTED_2,
-      OBJPROP_READONLY,
-      true
-   );
+   ObjectSetInteger(0,OBJ_EDIT_SELECTED_2,OBJPROP_READONLY,true);
 
    CreateButton(
       OBJ_BTN_CLEAR_SELECTED,
       "LIMPAR",
       230,
-      374,
+      393,
       50,
       20,
       clrDimGray
    );
 
    CreateLabel(
-      OBJ_LBL_SELECTED_CALC,
-      "SELECIONE ORDEM",
+      OBJ_LBL_GROUP_TARGET,
+      "TARGET      --",
       10,
-      400,
+      419,
       8,
       clrGold
    );
 
    CreateLabel(
-      OBJ_LBL_SELECTED_SOURCE,
-      "REF: --",
+      OBJ_LBL_GROUP_REFERENCE,
+      "REFERENCE   --",
       10,
-      416,
+      435,
       8,
       clrSilver
    );
 
    CreateLabel(
-      OBJ_LBL_SELECTED_EXPOSURE,
-      "RED: -- | EXP: -- -> --",
+      OBJ_LBL_GROUP_NET,
+      "GROUP NET   --",
       10,
-      432,
+      451,
+      8,
+      clrSilver
+   );
+
+   CreateLabel(
+      OBJ_LBL_GROUP_EXPOSURE,
+      "EXPOSURE    --",
+      10,
+      467,
+      8,
+      clrSilver
+   );
+
+   CreateLabel(
+      OBJ_LBL_GROUP_RESULT,
+      "RESULT      --",
+      10,
+      483,
       8,
       clrSilver
    );
 
    CreateButton(
       OBJ_BTN_REDUCE_SELECTED,
-      "REDUCE SELECIONADO",
+      "REDUCE GROUP",
       10,
-      450,
+      501,
       270,
       24,
       clrDimGray
    );
 
-   //===============================================================
    // RED + STATUS
    //===============================================================
 
@@ -7532,7 +7515,7 @@ void BuildInterface()
       OBJ_BTN_RED,
       "RED",
       116,
-      474,
+      530,
       60,
       18,
       clrDarkGoldenrod
@@ -7542,7 +7525,7 @@ void BuildInterface()
       OBJ_LBL_STATUS,
       "SENTINEL ATIVO",
       186,
-      478,
+      534,
       8,
       clrLimeGreen
    );
@@ -7555,7 +7538,7 @@ void BuildInterface()
       OBJ_LBL_REALIZED,
       "REALIZADO: 0.00",
       6,
-      510,
+      558,
       9,
       clrLimeGreen
    );
@@ -7564,7 +7547,7 @@ void BuildInterface()
       OBJ_LBL_TODAY_RESULT,
       "DIA: 0.00 USD",
       6,
-      532,
+      580,
       10,
       InpProfitColor
    );
@@ -8720,6 +8703,12 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_LBL_SELECTED_EXPOSURE);
    DeleteObjectSafe(OBJ_BTN_REDUCE_SELECTED);
    DeleteObjectSafe(OBJ_BTN_CLEAR_SELECTED);
+   DeleteObjectSafe(OBJ_LBL_GROUP_TITLE);
+   DeleteObjectSafe(OBJ_LBL_GROUP_TARGET);
+   DeleteObjectSafe(OBJ_LBL_GROUP_REFERENCE);
+   DeleteObjectSafe(OBJ_LBL_GROUP_NET);
+   DeleteObjectSafe(OBJ_LBL_GROUP_EXPOSURE);
+   DeleteObjectSafe(OBJ_LBL_GROUP_RESULT);
 
    DeleteObjectSafe(OBJ_BTN_CLOSE_ALL);
    DeleteObjectSafe(OBJ_BTN_RED);
@@ -8904,6 +8893,8 @@ int OnInit()
       ObjectSetInteger(0,OBJ_BTN_REDUCE_BOTH,OBJPROP_FONTSIZE,7);
 
    MakeButtonNonSelectable(OBJ_BTN_REDUCE_BOTH);
+   MakeButtonNonSelectable(OBJ_BTN_CLEAR_SELECTED);
+   MakeButtonNonSelectable(OBJ_BTN_REDUCE_SELECTED);
    MakeButtonNonSelectable(OBJ_BTN_CLOSE_ALL);
    MakeButtonNonSelectable(OBJ_BTN_RED);
 
