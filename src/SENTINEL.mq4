@@ -1909,6 +1909,192 @@ bool ExecuteSelectedReduction()
 
 
 //====================================================================
+// LINHAS DA REDUCAO SELECIONADA
+//====================================================================
+//
+// TARGET = ordem que o plano pretende reduzir.
+// REFERENCE = ordem usada como referencia estrutural.
+// As linhas sao somente visuais e nao participam da execucao.
+//
+//====================================================================
+
+double GetSelectedOrderOpenPrice(int ticket)
+{
+   if(ticket<=0)
+      return 0.0;
+
+   if(!OrderSelect(
+      ticket,
+      SELECT_BY_TICKET,
+      MODE_TRADES))
+      return 0.0;
+
+   if(!IsOurOrder())
+      return 0.0;
+
+   int type=OrderType();
+
+   if(type!=OP_BUY && type!=OP_SELL)
+      return 0.0;
+
+   return NormalizePrice(OrderOpenPrice());
+}
+
+void DeleteSelectedReductionLines()
+{
+   DeleteObjectSafe(OBJ_LINE_SELECTED_TARGET);
+   DeleteObjectSafe(OBJ_LINE_SELECTED_REFERENCE);
+   DeleteObjectSafe(OBJ_TXT_SELECTED_TARGET);
+   DeleteObjectSafe(OBJ_TXT_SELECTED_REFERENCE);
+}
+
+void UpdateSelectedReductionLines()
+{
+   // Nao existe plano valido: nenhuma referencia visual deve permanecer.
+   if(!BuildSelectedReductionPlan())
+   {
+      DeleteSelectedReductionLines();
+      return;
+   }
+
+   double targetPrice=
+      GetSelectedOrderOpenPrice(
+         g_selectedTargetTicket
+      );
+
+   if(targetPrice<=0.0)
+   {
+      DeleteSelectedReductionLines();
+      return;
+   }
+
+   //===============================================================
+   // TARGET
+   //===============================================================
+
+   CreateSegmentHLine(
+      OBJ_LINE_SELECTED_TARGET,
+      targetPrice,
+      clrGold,
+      STYLE_SOLID,
+      2
+   );
+
+   string targetText=
+      "TARGET  T"+
+      IntegerToString(g_selectedTargetTicket)+
+      " | "+
+      SelectedTypeText(g_selectedTargetTicket)+
+      " | RED "+
+      DoubleToString(g_selectedReduceLots,2);
+
+   if(ObjectFind(0,OBJ_TXT_SELECTED_TARGET)<0)
+   {
+      CreatePriceText(
+         OBJ_TXT_SELECTED_TARGET,
+         targetText,
+         targetPrice,
+         clrGold
+      );
+   }
+   else
+   {
+      ObjectSetDouble(
+         0,
+         OBJ_TXT_SELECTED_TARGET,
+         OBJPROP_PRICE1,
+         targetPrice
+      );
+
+      ObjectSetString(
+         0,
+         OBJ_TXT_SELECTED_TARGET,
+         OBJPROP_TEXT,
+         targetText
+      );
+
+      ObjectSetInteger(
+         0,
+         OBJ_TXT_SELECTED_TARGET,
+         OBJPROP_COLOR,
+         clrGold
+      );
+   }
+
+   //===============================================================
+   // REFERENCE
+   //===============================================================
+
+   if(g_selectedReferenceTicket>0)
+   {
+      double referencePrice=
+         GetSelectedOrderOpenPrice(
+            g_selectedReferenceTicket
+         );
+
+      if(referencePrice>0.0)
+      {
+         CreateSegmentHLine(
+            OBJ_LINE_SELECTED_REFERENCE,
+            referencePrice,
+            clrSilver,
+            STYLE_DASH,
+            1
+         );
+
+         string referenceText=
+            "REF  T"+
+            IntegerToString(g_selectedReferenceTicket)+
+            " | "+
+            SelectedTypeText(g_selectedReferenceTicket);
+
+         if(ObjectFind(0,OBJ_TXT_SELECTED_REFERENCE)<0)
+         {
+            CreatePriceText(
+               OBJ_TXT_SELECTED_REFERENCE,
+               referenceText,
+               referencePrice,
+               clrSilver
+            );
+         }
+         else
+         {
+            ObjectSetDouble(
+               0,
+               OBJ_TXT_SELECTED_REFERENCE,
+               OBJPROP_PRICE1,
+               referencePrice
+            );
+
+            ObjectSetString(
+               0,
+               OBJ_TXT_SELECTED_REFERENCE,
+               OBJPROP_TEXT,
+               referenceText
+            );
+
+            ObjectSetInteger(
+               0,
+               OBJ_TXT_SELECTED_REFERENCE,
+               OBJPROP_COLOR,
+               clrSilver
+            );
+         }
+      }
+      else
+      {
+         DeleteObjectSafe(OBJ_LINE_SELECTED_REFERENCE);
+         DeleteObjectSafe(OBJ_TXT_SELECTED_REFERENCE);
+      }
+   }
+   else
+   {
+      DeleteObjectSafe(OBJ_LINE_SELECTED_REFERENCE);
+      DeleteObjectSafe(OBJ_TXT_SELECTED_REFERENCE);
+   }
+}
+
+//====================================================================
 // GLOBAL DA CESTA
 //====================================================================
 
@@ -5074,6 +5260,8 @@ void UpdateTradingObjects()
    UpdateTradingReferenceLines();
 
    UpdateTradingLevels();
+
+   UpdateSelectedReductionLines();
 
    UpdateChartProfitLabel();
 }
