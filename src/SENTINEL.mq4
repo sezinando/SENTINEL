@@ -1606,8 +1606,15 @@ bool BuildSelectedReductionPlan()
       }
       else
       {
-         // Duas LOSS nao sao uma operacao de reducao dirigida valida.
-         return false;
+         // Duas LOSS: mantemos T1 como alvo e T2 como referencia.
+         // A selecao continua calculavel; a elegibilidade operacional
+         // sera validada novamente no momento da execucao.
+         g_selectedTargetTicket=ticket1;
+         g_selectedReferenceTicket=ticket2;
+         g_selectedTargetLots=lots1;
+         g_selectedReferenceLots=lots2;
+         g_selectedTargetResult=result1;
+         g_selectedReferenceResult=result2;
       }
    }
 
