@@ -105,9 +105,19 @@ string SelectionGlobalPrefix()
    return "SENTINEL_SELECTED_"+Symbol()+"_"+IntegerToString(InpMagicNumber)+"_";
 }
 
+string SelectionGenericPrefix()
+{
+   return "SENTINEL_SELECTED_"+Symbol()+"_-1_";
+}
+
 string SelectionGlobalName(int slot)
 {
    return SelectionGlobalPrefix()+IntegerToString(slot);
+}
+
+string SelectionGenericName(int slot)
+{
+   return SelectionGenericPrefix()+IntegerToString(slot);
 }
 
 int GetSelectedTicket(int slot)
@@ -159,6 +169,8 @@ void ClearSelectedTickets()
 {
    GlobalVariableSet(SelectionGlobalName(1),0.0);
    GlobalVariableSet(SelectionGlobalName(2),0.0);
+   GlobalVariableSet(SelectionGenericName(1),0.0);
+   GlobalVariableSet(SelectionGenericName(2),0.0);
    GlobalVariablesFlush();
 }
 
@@ -176,6 +188,11 @@ void ToggleSelectedTicket(int ticket)
          0.0
       );
 
+      GlobalVariableSet(
+         SelectionGenericName(slot),
+         0.0
+      );
+
       GlobalVariablesFlush();
       return;
    }
@@ -185,16 +202,20 @@ void ToggleSelectedTicket(int ticket)
    if(count>=MathMin(2,MathMax(1,InpSelectionMax)))
       return;
 
-   if(GetSelectedTicket(1)<=0)
-      GlobalVariableSet(
-         SelectionGlobalName(1),
-         ticket
-      );
-   else
-      GlobalVariableSet(
-         SelectionGlobalName(2),
-         ticket
-      );
+   int targetSlot=
+      GetSelectedTicket(1)<=0 ? 1 : 2;
+
+   GlobalVariableSet(
+      SelectionGlobalName(targetSlot),
+      ticket
+   );
+
+   // Publica tambem uma selecao generica por simbolo.
+   // O SENTINEL valida depois se o ticket pertence a sua cesta.
+   GlobalVariableSet(
+      SelectionGenericName(targetSlot),
+      ticket
+   );
 
    GlobalVariablesFlush();
 }
