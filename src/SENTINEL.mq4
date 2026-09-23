@@ -1298,6 +1298,15 @@ input color InpStopColor      = clrRed;
 // Isso permite BE e trailing stop manual com os botoes/linha.
 #define OBJ_BTN_STOP_PLUS      PREFIX+"BTN_STOP_PLUS"
 
+#define OBJ_EDIT_SELECTED_1   PREFIX+"EDIT_SELECTED_1"
+#define OBJ_EDIT_SELECTED_2   PREFIX+"EDIT_SELECTED_2"
+#define OBJ_LBL_SELECTED_1    PREFIX+"LBL_SELECTED_1"
+#define OBJ_LBL_SELECTED_2    PREFIX+"LBL_SELECTED_2"
+#define OBJ_LBL_SELECTED_CALC PREFIX+"LBL_SELECTED_CALC"
+#define OBJ_LBL_SELECTED_EXPOSURE PREFIX+"LBL_SELECTED_EXPOSURE"
+#define OBJ_BTN_REDUCE_SELECTED PREFIX+"BTN_REDUCE_SELECTED"
+#define OBJ_BTN_CLEAR_SELECTED PREFIX+"BTN_CLEAR_SELECTED"
+
 #define OBJ_LBL_STATUS         PREFIX+"LBL_STATUS"
 #define OBJ_LBL_CHART_PROFIT   PREFIX+"LBL_CHART_PROFIT"
 
@@ -1386,6 +1395,459 @@ bool g_chartForegroundCaptured = false;
 bool   g_basketActive         = false;
 double g_basketBaseHistory    = 0.0;
 double g_basketReduceExcluded = 0.0;
+bool g_selectedPlanValid=false;
+int  g_selectedTargetTicket=-1;
+int  g_selectedReferenceTicket=-1;
+double g_selectedTargetLots=0.0;
+double g_selectedReferenceLots=0.0;
+double g_selectedTargetResult=0.0;
+double g_selectedReferenceResult=0.0;
+double g_selectedReduceLots=0.0;
+
+string SelectedGlobalPrefix()
+{
+   return PREFIX+
+          "SELECTED_"+
+          Symbol()+
+          "_"+
+          IntegerToString(InpMagicNumber)+
+          "_";
+}
+
+string SelectedGlobalName(int slot)
+{
+   return SelectedGlobalPrefix()+
+          IntegerToString(slot);
+}
+
+int GetSelectedTicket(int slot)
+{
+   if(slot<1 || slot>2)
+      return -1;
+
+   string name=SelectedGlobalName(slot);
+
+   if(!GlobalVariableCheck(name))
+      return -1;
+
+   int ticket=(int)GlobalVariableGet(name);
+
+   if(ticket<=0)
+      return -1;
+
+   return ticket;
+}
+
+void ClearSelectedTickets()
+{
+   GlobalVariableSet(SelectedGlobalName(1),0.0);
+   GlobalVariableSet(SelectedGlobalName(2),0.0);
+   GlobalVariablesFlush();
+}
+
+bool GetSelectedOrderSnapshot(
+   int ticket,
+   int &type,
+   double &lots,
+   double &result)
+{
+   type=-1;
+   lots=0.0;
+   result=0.0;
+
+   if(ticket<=0)
+      return false;
+
+   if(!OrderSelect(
+      ticket,
+      SELECT_BY_TICKET,
+      MODE_TRADES))
+      return false;
+
+   if(!IsOurOrder())
+      return false;
+
+   type=OrderType();
+
+   if(type!=OP_BUY && type!=OP_SELL)
+      return false;
+
+   lots=OrderLots();
+
+   result=
+      OrderProfit()+
+      OrderSwap()+
+      OrderCommission();
+
+   return lots>0.0;
+}
+
+bool BuildSelectedReductionPlan()
+{
+   g_selectedPlanValid=false;
+   g_selectedTargetTicket=-1;
+   g_selectedReferenceTicket=-1;
+   g_selectedTargetLots=0.0;
+   g_selectedReferenceLots=0.0;
+   g_selectedTargetResult=0.0;
+   g_selectedReferenceResult=0.0;
+   g_selectedReduceLots=0.0;
+
+   int ticket1=GetSelectedTicket(1);
+   int ticket2=GetSelectedTicket(2);
+
+   if(ticket1<=0)
+      return false;
+
+   int type1=-1;
+   int type2=-1;
+   double lots1=0.0;
+   double lots2=0.0;
+   double result1=0.0;
+   double result2=0.0;
+
+   if(!GetSelectedOrderSnapshot(
+      ticket1,
+      type1,
+      lots1,
+      result1))
+      return false;
+
+   if(ticket2<=0)
+   {
+      g_selectedTargetTicket=ticket1;
+      g_selectedTargetLots=lots1;
+      g_selectedTargetResult=result1;
+   }
+   else
+   {
+      if(!GetSelectedOrderSnapshot(
+         ticket2,
+         type2,
+         lots2,
+         result2))
+         return false;
+
+      // Uma WIN e uma LOSS: a LOSS e o alvo.
+      if(result1>0.00000001 &&
+         result2<-0.00000001)
+      {
+         g_selectedTargetTicket=ticket2;
+         g_selectedReferenceTicket=ticket1;
+         g_selectedTargetLots=lots2;
+         g_selectedReferenceLots=lots1;
+         g_selectedTargetResult=result2;
+         g_selectedReferenceResult=result1;
+      }
+      else
+      if(result2>0.00000001 &&
+         result1<-0.00000001)
+      {
+         g_selectedTargetTicket=ticket1;
+         g_selectedReferenceTicket=ticket2;
+         g_selectedTargetLots=lots1;
+         g_selectedReferenceLots=lots2;
+         g_selectedTargetResult=result1;
+         g_selectedReferenceResult=result2;
+      }
+      // Duas WIN: reduz a menor ordem; a maior permanece aberta.
+      else
+      if(result1>0.00000001 &&
+         result2>0.00000001)
+      {
+         if(lots1<=lots2)
+         {
+            g_selectedTargetTicket=ticket1;
+            g_selectedReferenceTicket=ticket2;
+            g_selectedTargetLots=lots1;
+            g_selectedReferenceLots=lots2;
+            g_selectedTargetResult=result1;
+            g_selectedReferenceResult=result2;
+         }
+         else
+         {
+            g_selectedTargetTicket=ticket2;
+            g_selectedReferenceTicket=ticket1;
+            g_selectedTargetLots=lots2;
+            g_selectedReferenceLots=lots1;
+            g_selectedTargetResult=result2;
+            g_selectedReferenceResult=result1;
+         }
+      }
+      else
+      {
+         // Duas LOSS nao sao uma operacao de reducao dirigida valida.
+         return false;
+      }
+   }
+
+   double requested=
+      NormalizeLots(
+         g_selectedLots
+      );
+
+   if(requested<=0.0)
+      return false;
+
+   g_selectedReduceLots=
+      NormalizeLots(
+         MathMin(
+            requested,
+            g_selectedTargetLots
+         )
+      );
+
+   if(g_selectedReduceLots<=0.0)
+      return false;
+
+   g_selectedPlanValid=true;
+   return true;
+}
+
+string SelectedTypeText(int ticket)
+{
+   int type=-1;
+   double lots=0.0;
+   double result=0.0;
+
+   if(!GetSelectedOrderSnapshot(
+      ticket,
+      type,
+      lots,
+      result))
+      return "INVALIDA";
+
+   return type==OP_BUY ? "BUY" : "SELL";
+}
+
+void UpdateSelectedReductionPanel()
+{
+   int ticket1=GetSelectedTicket(1);
+   int ticket2=GetSelectedTicket(2);
+
+   string t1=ticket1>0 ?
+      IntegerToString(ticket1) :
+      "--";
+
+   string t2=ticket2>0 ?
+      IntegerToString(ticket2) :
+      "--";
+
+   if(ObjectFind(0,OBJ_EDIT_SELECTED_1)>=0)
+      ObjectSetString(
+         0,
+         OBJ_EDIT_SELECTED_1,
+         OBJPROP_TEXT,
+         t1
+      );
+
+   if(ObjectFind(0,OBJ_EDIT_SELECTED_2)>=0)
+      ObjectSetString(
+         0,
+         OBJ_EDIT_SELECTED_2,
+         OBJPROP_TEXT,
+         t2
+      );
+
+   bool valid=BuildSelectedReductionPlan();
+
+   if(!valid)
+   {
+      UpdateLabel(
+         OBJ_LBL_SELECTED_CALC,
+         ticket1<=0 ?
+         "SELECIONE ORDEM" :
+         "SELECAO NAO ELEGIVEL",
+         clrGold
+      );
+
+      UpdateLabel(
+         OBJ_LBL_SELECTED_EXPOSURE,
+         "RED: -- | EXP: -- -> --",
+         clrSilver
+      );
+
+      if(ObjectFind(0,OBJ_BTN_REDUCE_SELECTED)>=0)
+      {
+         ObjectSetInteger(
+            0,
+            OBJ_BTN_REDUCE_SELECTED,
+            OBJPROP_BGCOLOR,
+            clrDimGray
+         );
+
+         ObjectSetString(
+            0,
+            OBJ_BTN_REDUCE_SELECTED,
+            OBJPROP_TEXT,
+            "REDUCE SELECIONADO"
+         );
+      }
+
+      return;
+   }
+
+   double buyBefore=GetBuyLots();
+   double sellBefore=GetSellLots();
+   double exposureBefore=buyBefore+sellBefore;
+
+   double buyAfter=buyBefore;
+   double sellAfter=sellBefore;
+
+   int targetType=-1;
+   double tmpLots=0.0;
+   double tmpResult=0.0;
+
+   GetSelectedOrderSnapshot(
+      g_selectedTargetTicket,
+      targetType,
+      tmpLots,
+      tmpResult
+   );
+
+   if(targetType==OP_BUY)
+      buyAfter-=g_selectedReduceLots;
+   else
+   if(targetType==OP_SELL)
+      sellAfter-=g_selectedReduceLots;
+
+   if(buyAfter<0.0) buyAfter=0.0;
+   if(sellAfter<0.0) sellAfter=0.0;
+
+   double netBefore=buyBefore-sellBefore;
+   double netAfter=buyAfter-sellAfter;
+   double exposureAfter=buyAfter+sellAfter;
+
+   string targetText=
+      IntegerToString(g_selectedTargetTicket)+
+      " "+SelectedTypeText(g_selectedTargetTicket)+
+      " "+
+      DoubleToString(g_selectedTargetLots,2)+
+      " -> "+
+      DoubleToString(
+         g_selectedTargetLots-g_selectedReduceLots,
+         2
+      );
+
+   UpdateLabel(
+      OBJ_LBL_SELECTED_CALC,
+      "ALVO: "+targetText+
+      " | RED: "+DoubleToString(g_selectedReduceLots,2),
+      g_selectedTargetResult>=0.0 ?
+      InpProfitColor :
+      InpStopColor
+   );
+
+   UpdateLabel(
+      OBJ_LBL_SELECTED_EXPOSURE,
+      "NET "+
+      DoubleToString(netBefore,2)+
+      " -> "+
+      DoubleToString(netAfter,2)+
+      " | EXP "+
+      DoubleToString(exposureBefore,2)+
+      " -> "+
+      DoubleToString(exposureAfter,2),
+      clrSilver
+   );
+
+   if(ObjectFind(0,OBJ_BTN_REDUCE_SELECTED)>=0)
+   {
+      ObjectSetInteger(
+         0,
+         OBJ_BTN_REDUCE_SELECTED,
+         OBJPROP_BGCOLOR,
+         clrDarkGoldenrod
+      );
+
+      ObjectSetString(
+         0,
+         OBJ_BTN_REDUCE_SELECTED,
+         OBJPROP_TEXT,
+         "REDUCE "+DoubleToString(g_selectedReduceLots,2)
+      );
+   }
+}
+
+bool ExecuteSelectedReduction()
+{
+   if(!BuildSelectedReductionPlan())
+   {
+      SetStatus(
+         "SELECAO INVALIDA",
+         InpStopColor
+      );
+      return false;
+   }
+
+   int ticket=g_selectedTargetTicket;
+
+   // Revalida o ticket imediatamente antes da execucao.
+   if(!OrderSelect(
+      ticket,
+      SELECT_BY_TICKET,
+      MODE_TRADES))
+   {
+      SetStatus(
+         "TICKET NAO ENCONTRADO",
+         InpStopColor
+      );
+      return false;
+   }
+
+   if(!IsOurOrder())
+   {
+      SetStatus(
+         "TICKET FORA DA CESTA",
+         InpStopColor
+      );
+      return false;
+   }
+
+   double available=OrderLots();
+
+   double closeLots=
+      NormalizeLots(
+         MathMin(
+            g_selectedReduceLots,
+            available
+         )
+      );
+
+   if(closeLots<=0.0)
+   {
+      SetStatus(
+         "LOTE INVALIDO",
+         InpStopColor
+      );
+      return false;
+   }
+
+   if(!PartialCloseTicket(
+      ticket,
+      closeLots))
+   {
+      SetStatus(
+         "REDUCE SELECIONADO ERRO "+
+         IntegerToString(GetLastError()),
+         InpStopColor
+      );
+      return false;
+   }
+
+   SetStatus(
+      "REDUCE T"+IntegerToString(ticket)+
+      " "+DoubleToString(closeLots,2),
+      InpProfitColor
+   );
+
+   // A operacao consumiu a selecao. O Cesta Manager continuara
+   // mostrando a nova situacao da ordem.
+   ClearSelectedTickets();
+
+   return true;
+}
+
 
 //====================================================================
 // GLOBAL DA CESTA
@@ -5615,7 +6077,7 @@ void CreatePanel()
       0,
       OBJ_PANEL,
       OBJPROP_YSIZE,
-      500
+      570
    );
 
    // Fundo totalmente opaco.
@@ -6711,6 +7173,98 @@ void BuildInterface()
    );
 
    //===============================================================
+   // SELECAO DE ORDENS - CESTA MANAGER
+   //===============================================================
+
+   CreateLabel(
+      OBJ_LBL_SELECTED_1,
+      "T1",
+      10,
+      378,
+      8,
+      clrSilver
+   );
+
+   CreateEdit(
+      OBJ_EDIT_SELECTED_1,
+      "--",
+      30,
+      374,
+      82,
+      20
+   );
+
+   ObjectSetInteger(
+      0,
+      OBJ_EDIT_SELECTED_1,
+      OBJPROP_READONLY,
+      true
+   );
+
+   CreateLabel(
+      OBJ_LBL_SELECTED_2,
+      "T2",
+      120,
+      378,
+      8,
+      clrSilver
+   );
+
+   CreateEdit(
+      OBJ_EDIT_SELECTED_2,
+      "--",
+      140,
+      374,
+      82,
+      20
+   );
+
+   ObjectSetInteger(
+      0,
+      OBJ_EDIT_SELECTED_2,
+      OBJPROP_READONLY,
+      true
+   );
+
+   CreateButton(
+      OBJ_BTN_CLEAR_SELECTED,
+      "LIMPAR",
+      230,
+      374,
+      50,
+      20,
+      clrDimGray
+   );
+
+   CreateLabel(
+      OBJ_LBL_SELECTED_CALC,
+      "SELECIONE ORDEM",
+      10,
+      400,
+      8,
+      clrGold
+   );
+
+   CreateLabel(
+      OBJ_LBL_SELECTED_EXPOSURE,
+      "RED: -- | EXP: -- -> --",
+      10,
+      416,
+      8,
+      clrSilver
+   );
+
+   CreateButton(
+      OBJ_BTN_REDUCE_SELECTED,
+      "REDUCE SELECIONADO",
+      10,
+      438,
+      270,
+      24,
+      clrDimGray
+   );
+
+   //===============================================================
    // RED + STATUS
    //===============================================================
 
@@ -6718,7 +7272,7 @@ void BuildInterface()
       OBJ_BTN_RED,
       "RED",
       116,
-      378,
+      474,
       60,
       18,
       clrDarkGoldenrod
@@ -6728,7 +7282,7 @@ void BuildInterface()
       OBJ_LBL_STATUS,
       "SENTINEL ATIVO",
       186,
-      382,
+      478,
       8,
       clrLimeGreen
    );
@@ -6741,7 +7295,7 @@ void BuildInterface()
       OBJ_LBL_REALIZED,
       "REALIZADO: 0.00",
       6,
-      421,
+      510,
       9,
       clrLimeGreen
    );
@@ -6750,7 +7304,7 @@ void BuildInterface()
       OBJ_LBL_TODAY_RESULT,
       "DIA: 0.00 USD",
       6,
-      443,
+      532,
       10,
       InpProfitColor
    );
@@ -6922,6 +7476,7 @@ void UpdateInterface()
    UpdateTodayRealizedPanel();
    UpdateATRContextPanel();
    UpdateEntryEnginePanel();
+   UpdateSelectedReductionPanel();
 
    ResetAllButtonVisualStates();
    double buy=
@@ -7554,6 +8109,38 @@ void ProcessButton(
       );
 
    //-----------------------------------------------------------------
+   // REDUCE SELECIONADO
+   //-----------------------------------------------------------------
+
+   if(name==OBJ_BTN_REDUCE_SELECTED)
+   {
+      bool ok=ExecuteSelectedReduction();
+
+      ShowReduceButtonFeedback(
+         OBJ_BTN_REDUCE_SELECTED,
+         ok
+      );
+
+      return;
+   }
+
+   //-----------------------------------------------------------------
+   // LIMPAR SELECAO
+   //-----------------------------------------------------------------
+
+   if(name==OBJ_BTN_CLEAR_SELECTED)
+   {
+      ClearSelectedTickets();
+
+      SetStatus(
+         "SELECAO LIMPA",
+         clrSilver
+      );
+
+      return;
+   }
+
+   //-----------------------------------------------------------------
    // LOTES -10
    //-----------------------------------------------------------------
 
@@ -7864,6 +8451,14 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_BTN_REDUCE_SELL_WIN);
    DeleteObjectSafe(OBJ_BTN_REDUCE_SELL_LOSS);
    DeleteObjectSafe(OBJ_BTN_REDUCE_BOTH);
+   DeleteObjectSafe(OBJ_EDIT_SELECTED_1);
+   DeleteObjectSafe(OBJ_EDIT_SELECTED_2);
+   DeleteObjectSafe(OBJ_LBL_SELECTED_1);
+   DeleteObjectSafe(OBJ_LBL_SELECTED_2);
+   DeleteObjectSafe(OBJ_LBL_SELECTED_CALC);
+   DeleteObjectSafe(OBJ_LBL_SELECTED_EXPOSURE);
+   DeleteObjectSafe(OBJ_BTN_REDUCE_SELECTED);
+   DeleteObjectSafe(OBJ_BTN_CLEAR_SELECTED);
 
    DeleteObjectSafe(OBJ_BTN_CLOSE_ALL);
    DeleteObjectSafe(OBJ_BTN_RED);
