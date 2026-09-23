@@ -6270,14 +6270,14 @@ void CreatePanel()
       0,
       OBJ_PANEL,
       OBJPROP_XDISTANCE,
-      4
+      UI_PANEL_X
    );
 
    ObjectSetInteger(
       0,
       OBJ_PANEL,
       OBJPROP_YDISTANCE,
-      4
+      UI_PANEL_Y
    );
 
    ObjectSetInteger(
@@ -6291,7 +6291,7 @@ void CreatePanel()
       0,
       OBJ_PANEL,
       OBJPROP_YSIZE,
-      520
+      InpPanelHeight
    );
 
    // Fundo totalmente opaco.
@@ -6977,6 +6977,41 @@ void CreateEdit(
 }
 
 //====================================================================
+// LAYOUT DO PAINEL
+//====================================================================
+// Coordenadas relativas ao canto superior do painel.
+#define UI_Y_TITLE              13
+#define UI_Y_SUBTITLE           34
+#define UI_Y_SUMMARY            54
+#define UI_Y_OPEN               70
+#define UI_Y_LOTS_LABEL         90
+#define UI_Y_LOTS               84
+#define UI_Y_TRADE              108
+#define UI_Y_REDUCE_BOTH        138
+#define UI_Y_WIN_LOSS            167
+#define UI_Y_TAKE_LABEL          199
+#define UI_Y_TAKE                195
+#define UI_Y_STOP_LABEL          226
+#define UI_Y_STOP                222
+#define UI_Y_CLOSE_ALL           255
+#define UI_Y_GROUP_TITLE         286
+#define UI_Y_GROUP_TICKETS       307
+#define UI_Y_GROUP_TICKET_EDIT   303
+#define UI_Y_GROUP_TARGET        329
+#define UI_Y_GROUP_REFERENCE     345
+#define UI_Y_GROUP_NET           361
+#define UI_Y_GROUP_EXPOSURE      377
+#define UI_Y_GROUP_RESULT        393
+#define UI_Y_GROUP_BUTTON        411
+#define UI_Y_RED                  440
+#define UI_Y_STATUS               444
+#define UI_Y_REALIZED             468
+#define UI_Y_TODAY                490
+
+#define UI_PANEL_X                 4
+#define UI_PANEL_Y                 4
+
+//====================================================================
 // CONSTRUI INTERFACE
 //====================================================================
 
@@ -6992,7 +7027,7 @@ void BuildInterface()
       OBJ_LBL_TITLE,
       "SENTINEL",
       16,
-      13,
+      UI_Y_TITLE,
       15,
       clrWhite
    );
@@ -7003,7 +7038,7 @@ void BuildInterface()
       " TF "+
       IntegerToString(Period()),
       16,
-      34,
+      UI_Y_SUBTITLE,
       8,
       clrGold
    );
@@ -7015,7 +7050,7 @@ void BuildInterface()
        "TODOS" :
        IntegerToString(InpMagicNumber)),
       190,
-      34,
+      UI_Y_SUBTITLE,
       8,
       clrDeepSkyBlue
    );
@@ -7028,7 +7063,7 @@ void BuildInterface()
       OBJ_LBL_BUY,
       "BUY: 0.00",
       16,
-      54,
+      UI_Y_SUMMARY,
       9,
       InpBuyColor
    );
@@ -7037,7 +7072,7 @@ void BuildInterface()
       OBJ_LBL_SELL,
       "SELL: 0.00",
       98,
-      54,
+      UI_Y_SUMMARY,
       9,
       InpSellColor
    );
@@ -7046,7 +7081,7 @@ void BuildInterface()
       OBJ_LBL_NET,
       "NET: 0.00",
       190,
-      54,
+      UI_Y_SUMMARY,
       9,
       InpProfitColor
    );
@@ -7059,7 +7094,7 @@ void BuildInterface()
       OBJ_LBL_OPEN,
       "ABERTO: 0.00",
       6,
-      70,
+      UI_Y_OPEN,
       11,
       clrLimeGreen
    );
@@ -7072,7 +7107,7 @@ void BuildInterface()
       OBJ_LBL_REDUCE,
       "LOTES",
       16,
-      90,
+      UI_Y_LOTS_LABEL,
       8,
       clrSilver
    );
@@ -7081,7 +7116,7 @@ void BuildInterface()
       OBJ_BTN_LOTS_MINUS_10,
       "-10",
       70,
-      84,
+      UI_Y_LOTS,
       25,
       20,
       clrMaroon
@@ -7091,7 +7126,7 @@ void BuildInterface()
       OBJ_BTN_LOTS_MINUS_1,
       "-1",
       97,
-      84,
+      UI_Y_LOTS,
       22,
       20,
       clrMaroon
@@ -7101,7 +7136,7 @@ void BuildInterface()
       OBJ_EDIT_LOTS,
       DoubleToString(g_selectedLots,2),
       121,
-      84,
+      UI_Y_LOTS,
       50,
       20
    );
@@ -7110,7 +7145,7 @@ void BuildInterface()
       OBJ_BTN_LOTS_PLUS_1,
       "+1",
       173,
-      84,
+      UI_Y_LOTS,
       22,
       20,
       clrDarkGreen
@@ -7120,7 +7155,7 @@ void BuildInterface()
       OBJ_BTN_LOTS_PLUS_10,
       "+10",
       197,
-      84,
+      UI_Y_LOTS,
       28,
       20,
       clrDarkGreen
@@ -7134,7 +7169,7 @@ void BuildInterface()
       OBJ_BTN_BUY,
       "COMPRAR",
       10,
-      108,
+      UI_Y_TRADE,
       132,
       25,
       clrForestGreen
@@ -7144,7 +7179,7 @@ void BuildInterface()
       OBJ_BTN_SELL,
       "VENDER",
       148,
-      108,
+      UI_Y_TRADE,
       132,
       25,
       clrFireBrick
@@ -7158,7 +7193,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_BOTH,
       "REDUCE BxS",
       10,
-      138,
+      UI_Y_REDUCE_BOTH,
       270,
       24,
       clrDimGray
@@ -7172,7 +7207,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_BUY_WIN,
       "BUY WIN",
       10,
-      167,
+      UI_Y_WIN_LOSS,
       65,
       24,
       clrDarkSlateBlue
@@ -7182,7 +7217,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_BUY_LOSS,
       "BUY LOSS",
       79,
-      167,
+      UI_Y_WIN_LOSS,
       65,
       24,
       clrDarkSlateBlue
@@ -7192,7 +7227,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_SELL_WIN,
       "SELL WIN",
       148,
-      167,
+      UI_Y_WIN_LOSS,
       65,
       24,
       clrMaroon
@@ -7202,7 +7237,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_SELL_LOSS,
       "SELL LOSS",
       217,
-      167,
+      UI_Y_WIN_LOSS,
       63,
       24,
       clrMaroon
@@ -7216,7 +7251,7 @@ void BuildInterface()
       OBJ_LBL_TARGET_MONEY,
       "TAKE PTS",
       10,
-      199,
+      UI_Y_TAKE_LABEL,
       8,
       InpTakeColor
    );
@@ -7225,7 +7260,7 @@ void BuildInterface()
       OBJ_BTN_TARGET_MINUS,
       "-",
       119,
-      195,
+      UI_Y_TAKE,
       22,
       20,
       clrDarkGreen
@@ -7235,7 +7270,7 @@ void BuildInterface()
       OBJ_EDIT_TARGET,
       DoubleToString(g_targetPoints,0),
       143,
-      195,
+      UI_Y_TAKE,
       60,
       20
    );
@@ -7244,7 +7279,7 @@ void BuildInterface()
       OBJ_BTN_TARGET_PLUS,
       "+",
       207,
-      195,
+      UI_Y_TAKE,
       22,
       20,
       clrDarkGreen
@@ -7258,7 +7293,7 @@ void BuildInterface()
       OBJ_LBL_STOP_MONEY,
       "STOP PTS",
       10,
-      226,
+      UI_Y_STOP_LABEL,
       8,
       InpStopColor
    );
@@ -7267,7 +7302,7 @@ void BuildInterface()
       OBJ_BTN_STOP_MINUS,
       "-",
       119,
-      222,
+      UI_Y_STOP,
       22,
       20,
       clrMaroon
@@ -7277,7 +7312,7 @@ void BuildInterface()
       OBJ_EDIT_STOP,
       DoubleToString(g_stopPoints,0),
       143,
-      222,
+      UI_Y_STOP,
       60,
       20
    );
@@ -7286,7 +7321,7 @@ void BuildInterface()
       OBJ_BTN_STOP_PLUS,
       "+",
       207,
-      222,
+      UI_Y_STOP,
       22,
       20,
       clrMaroon
@@ -7300,7 +7335,7 @@ void BuildInterface()
       OBJ_BTN_CLOSE_ALL,
       "CLOSE ALL",
       10,
-      255,
+      UI_Y_CLOSE_ALL,
       270,
       28,
       clrDarkRed
@@ -7315,7 +7350,7 @@ void BuildInterface()
       OBJ_LBL_GROUP_TITLE,
       "CURRENT GROUP",
       10,
-      286,
+      UI_Y_GROUP_TITLE,
       9,
       clrWhite
    );
@@ -7324,7 +7359,7 @@ void BuildInterface()
       OBJ_LBL_SELECTED_1,
       "T1",
       10,
-      307,
+      UI_Y_GROUP_TICKETS,
       8,
       clrSilver
    );
@@ -7333,7 +7368,7 @@ void BuildInterface()
       OBJ_EDIT_SELECTED_1,
       "--",
       30,
-      303,
+      UI_Y_GROUP_TICKET_EDIT,
       82,
       20
    );
@@ -7344,7 +7379,7 @@ void BuildInterface()
       OBJ_LBL_SELECTED_2,
       "T2",
       120,
-      307,
+      UI_Y_GROUP_TICKETS,
       8,
       clrSilver
    );
@@ -7353,7 +7388,7 @@ void BuildInterface()
       OBJ_EDIT_SELECTED_2,
       "--",
       140,
-      303,
+      UI_Y_GROUP_TICKET_EDIT,
       82,
       20
    );
@@ -7364,7 +7399,7 @@ void BuildInterface()
       OBJ_BTN_CLEAR_SELECTED,
       "LIMPAR",
       230,
-      303,
+      UI_Y_GROUP_TICKET_EDIT,
       50,
       20,
       clrDimGray
@@ -7374,7 +7409,7 @@ void BuildInterface()
       OBJ_LBL_GROUP_TARGET,
       "TARGET      --",
       10,
-      329,
+      UI_Y_GROUP_TARGET,
       8,
       clrGold
    );
@@ -7383,7 +7418,7 @@ void BuildInterface()
       OBJ_LBL_GROUP_REFERENCE,
       "REFERENCE   --",
       10,
-      345,
+      UI_Y_GROUP_REFERENCE,
       8,
       clrSilver
    );
@@ -7392,7 +7427,7 @@ void BuildInterface()
       OBJ_LBL_GROUP_NET,
       "GROUP NET   --",
       10,
-      361,
+      UI_Y_GROUP_NET,
       8,
       clrSilver
    );
@@ -7401,7 +7436,7 @@ void BuildInterface()
       OBJ_LBL_GROUP_EXPOSURE,
       "EXPOSURE    --",
       10,
-      377,
+      UI_Y_GROUP_EXPOSURE,
       8,
       clrSilver
    );
@@ -7410,7 +7445,7 @@ void BuildInterface()
       OBJ_LBL_GROUP_RESULT,
       "RESULT      --",
       10,
-      393,
+      UI_Y_GROUP_RESULT,
       8,
       clrSilver
    );
@@ -7419,7 +7454,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_SELECTED,
       "REDUCE GROUP",
       10,
-      411,
+      UI_Y_GROUP_BUTTON,
       270,
       24,
       clrDimGray
@@ -7432,7 +7467,7 @@ void BuildInterface()
       OBJ_BTN_RED,
       "RED",
       116,
-      440,
+      UI_Y_RED,
       60,
       18,
       clrDarkGoldenrod
@@ -7442,7 +7477,7 @@ void BuildInterface()
       OBJ_LBL_STATUS,
       "SENTINEL ATIVO",
       186,
-      444,
+      UI_Y_STATUS,
       8,
       clrLimeGreen
    );
@@ -7455,7 +7490,7 @@ void BuildInterface()
       OBJ_LBL_REALIZED,
       "REALIZADO: 0.00",
       6,
-      468,
+      UI_Y_REALIZED,
       9,
       clrLimeGreen
    );
@@ -7464,7 +7499,7 @@ void BuildInterface()
       OBJ_LBL_TODAY_RESULT,
       "DIA: 0.00 USD",
       6,
-      490,
+      UI_Y_TODAY,
       10,
       InpProfitColor
    );
