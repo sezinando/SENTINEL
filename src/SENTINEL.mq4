@@ -1123,10 +1123,7 @@ void UpdateEntryEnginePanel()
 {
    if(!InpShowEntryEngine)
    {
-      DeleteObjectSafe(OBJ_LBL_ENTRY_CONTEXT);
-      DeleteObjectSafe(OBJ_LBL_ENTRY_SIGNAL);
-      DeleteObjectSafe(OBJ_LBL_ENTRY_SCORE);
-      return;
+               return;
    }
 
    CalculateEntryEngine();
@@ -6294,7 +6291,7 @@ void CreatePanel()
       0,
       OBJ_PANEL,
       OBJPROP_YSIZE,
-      610
+      520
    );
 
    // Fundo totalmente opaco.
@@ -7054,86 +7051,6 @@ void BuildInterface()
       InpProfitColor
    );
 
-   CreateLabel(
-      OBJ_LBL_EXPOSURE,
-      "EXPOSICAO: 0.00",
-      16,
-      73,
-      8,
-      clrSilver
-   );
-
-   //===============================================================
-   // ATR — LINHA COMPACTA
-   //===============================================================
-
-   CreateLabel(
-      OBJ_LBL_ATR,
-      "ATR (M15) 14    -- pts",
-      10,
-      91,
-      8,
-      clrSilver
-   );
-
-   CreateLabel(
-      OBJ_LBL_ATR_REGIME,
-      "DISTANCIA ATR: --",
-      180,
-      91,
-      8,
-      clrSilver
-   );
-
-   CreateLabel(
-      OBJ_LBL_SIGNAL_BUY,
-      "B: OK",
-      196,
-      107,
-      8,
-      InpBuyColor
-   );
-
-   CreateLabel(
-      OBJ_LBL_SIGNAL_SELL,
-      "S: OK",
-      252,
-      107,
-      8,
-      InpSellColor
-   );
-
-   //===============================================================
-   // ENTRY ENGINE
-   //===============================================================
-
-   CreateLabel(
-      OBJ_LBL_ENTRY_CONTEXT,
-      "CONTEXTO: --",
-      10,
-      124,
-      8,
-      clrSilver
-   );
-
-   CreateLabel(
-      OBJ_LBL_ENTRY_SIGNAL,
-      "AGUARDAR",
-      10,
-      140,
-      10,
-      clrGold
-   );
-
-   CreateLabel(
-      OBJ_LBL_ENTRY_SCORE,
-      "NOVA: -- | --",
-      158,
-      142,
-      8,
-      clrSilver
-   );
-
    //===============================================================
    // ABERTO — DESTAQUE
    //===============================================================
@@ -7142,7 +7059,7 @@ void BuildInterface()
       OBJ_LBL_OPEN,
       "ABERTO: 0.00",
       6,
-      160,
+      70,
       11,
       clrLimeGreen
    );
@@ -7155,7 +7072,7 @@ void BuildInterface()
       OBJ_LBL_REDUCE,
       "LOTES",
       16,
-      180,
+      90,
       8,
       clrSilver
    );
@@ -7164,7 +7081,7 @@ void BuildInterface()
       OBJ_BTN_LOTS_MINUS_10,
       "-10",
       70,
-      174,
+      84,
       25,
       20,
       clrMaroon
@@ -7174,7 +7091,7 @@ void BuildInterface()
       OBJ_BTN_LOTS_MINUS_1,
       "-1",
       97,
-      174,
+      84,
       22,
       20,
       clrMaroon
@@ -7184,7 +7101,7 @@ void BuildInterface()
       OBJ_EDIT_LOTS,
       DoubleToString(g_selectedLots,2),
       121,
-      174,
+      84,
       50,
       20
    );
@@ -7193,7 +7110,7 @@ void BuildInterface()
       OBJ_BTN_LOTS_PLUS_1,
       "+1",
       173,
-      174,
+      84,
       22,
       20,
       clrDarkGreen
@@ -7203,7 +7120,7 @@ void BuildInterface()
       OBJ_BTN_LOTS_PLUS_10,
       "+10",
       197,
-      174,
+      84,
       28,
       20,
       clrDarkGreen
@@ -7217,7 +7134,7 @@ void BuildInterface()
       OBJ_BTN_BUY,
       "COMPRAR",
       10,
-      198,
+      108,
       132,
       25,
       clrForestGreen
@@ -7227,7 +7144,7 @@ void BuildInterface()
       OBJ_BTN_SELL,
       "VENDER",
       148,
-      198,
+      108,
       132,
       25,
       clrFireBrick
@@ -7241,7 +7158,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_BOTH,
       "REDUCE BxS",
       10,
-      228,
+      138,
       270,
       24,
       clrDimGray
@@ -7255,7 +7172,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_BUY_WIN,
       "BUY WIN",
       10,
-      257,
+      167,
       65,
       24,
       clrDarkSlateBlue
@@ -7265,7 +7182,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_BUY_LOSS,
       "BUY LOSS",
       79,
-      257,
+      167,
       65,
       24,
       clrDarkSlateBlue
@@ -7275,7 +7192,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_SELL_WIN,
       "SELL WIN",
       148,
-      257,
+      167,
       65,
       24,
       clrMaroon
@@ -7285,7 +7202,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_SELL_LOSS,
       "SELL LOSS",
       217,
-      257,
+      167,
       63,
       24,
       clrMaroon
@@ -7299,7 +7216,7 @@ void BuildInterface()
       OBJ_LBL_TARGET_MONEY,
       "TAKE PTS",
       10,
-      289,
+      199,
       8,
       InpTakeColor
    );
@@ -7308,7 +7225,7 @@ void BuildInterface()
       OBJ_BTN_TARGET_MINUS,
       "-",
       119,
-      285,
+      195,
       22,
       20,
       clrDarkGreen
@@ -7318,7 +7235,7 @@ void BuildInterface()
       OBJ_EDIT_TARGET,
       DoubleToString(g_targetPoints,0),
       143,
-      285,
+      195,
       60,
       20
    );
@@ -7327,7 +7244,7 @@ void BuildInterface()
       OBJ_BTN_TARGET_PLUS,
       "+",
       207,
-      285,
+      195,
       22,
       20,
       clrDarkGreen
@@ -7341,7 +7258,7 @@ void BuildInterface()
       OBJ_LBL_STOP_MONEY,
       "STOP PTS",
       10,
-      316,
+      226,
       8,
       InpStopColor
    );
@@ -7350,7 +7267,7 @@ void BuildInterface()
       OBJ_BTN_STOP_MINUS,
       "-",
       119,
-      312,
+      222,
       22,
       20,
       clrMaroon
@@ -7360,7 +7277,7 @@ void BuildInterface()
       OBJ_EDIT_STOP,
       DoubleToString(g_stopPoints,0),
       143,
-      312,
+      222,
       60,
       20
    );
@@ -7369,7 +7286,7 @@ void BuildInterface()
       OBJ_BTN_STOP_PLUS,
       "+",
       207,
-      312,
+      222,
       22,
       20,
       clrMaroon
@@ -7383,7 +7300,7 @@ void BuildInterface()
       OBJ_BTN_CLOSE_ALL,
       "CLOSE ALL",
       10,
-      345,
+      255,
       270,
       28,
       clrDarkRed
@@ -7398,7 +7315,7 @@ void BuildInterface()
       OBJ_LBL_GROUP_TITLE,
       "CURRENT GROUP",
       10,
-      376,
+      286,
       9,
       clrWhite
    );
@@ -7407,7 +7324,7 @@ void BuildInterface()
       OBJ_LBL_SELECTED_1,
       "T1",
       10,
-      397,
+      307,
       8,
       clrSilver
    );
@@ -7416,7 +7333,7 @@ void BuildInterface()
       OBJ_EDIT_SELECTED_1,
       "--",
       30,
-      393,
+      303,
       82,
       20
    );
@@ -7427,7 +7344,7 @@ void BuildInterface()
       OBJ_LBL_SELECTED_2,
       "T2",
       120,
-      397,
+      307,
       8,
       clrSilver
    );
@@ -7436,7 +7353,7 @@ void BuildInterface()
       OBJ_EDIT_SELECTED_2,
       "--",
       140,
-      393,
+      303,
       82,
       20
    );
@@ -7447,7 +7364,7 @@ void BuildInterface()
       OBJ_BTN_CLEAR_SELECTED,
       "LIMPAR",
       230,
-      393,
+      303,
       50,
       20,
       clrDimGray
@@ -7457,7 +7374,7 @@ void BuildInterface()
       OBJ_LBL_GROUP_TARGET,
       "TARGET      --",
       10,
-      419,
+      329,
       8,
       clrGold
    );
@@ -7466,7 +7383,7 @@ void BuildInterface()
       OBJ_LBL_GROUP_REFERENCE,
       "REFERENCE   --",
       10,
-      435,
+      345,
       8,
       clrSilver
    );
@@ -7475,7 +7392,7 @@ void BuildInterface()
       OBJ_LBL_GROUP_NET,
       "GROUP NET   --",
       10,
-      451,
+      361,
       8,
       clrSilver
    );
@@ -7484,7 +7401,7 @@ void BuildInterface()
       OBJ_LBL_GROUP_EXPOSURE,
       "EXPOSURE    --",
       10,
-      467,
+      377,
       8,
       clrSilver
    );
@@ -7493,7 +7410,7 @@ void BuildInterface()
       OBJ_LBL_GROUP_RESULT,
       "RESULT      --",
       10,
-      483,
+      393,
       8,
       clrSilver
    );
@@ -7502,7 +7419,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_SELECTED,
       "REDUCE GROUP",
       10,
-      501,
+      411,
       270,
       24,
       clrDimGray
@@ -7515,7 +7432,7 @@ void BuildInterface()
       OBJ_BTN_RED,
       "RED",
       116,
-      530,
+      440,
       60,
       18,
       clrDarkGoldenrod
@@ -7525,7 +7442,7 @@ void BuildInterface()
       OBJ_LBL_STATUS,
       "SENTINEL ATIVO",
       186,
-      534,
+      444,
       8,
       clrLimeGreen
    );
@@ -7538,7 +7455,7 @@ void BuildInterface()
       OBJ_LBL_REALIZED,
       "REALIZADO: 0.00",
       6,
-      558,
+      468,
       9,
       clrLimeGreen
    );
@@ -7547,7 +7464,7 @@ void BuildInterface()
       OBJ_LBL_TODAY_RESULT,
       "DIA: 0.00 USD",
       6,
-      580,
+      490,
       10,
       InpProfitColor
    );
@@ -7624,11 +7541,7 @@ void UpdateATRContextPanel()
 {
    if(!InpShowATRContext)
    {
-      DeleteObjectSafe(OBJ_LBL_ATR);
-      DeleteObjectSafe(OBJ_LBL_ATR_REGIME);
-      DeleteObjectSafe(OBJ_LBL_SIGNAL_BUY);
-      DeleteObjectSafe(OBJ_LBL_SIGNAL_SELL);
-      return;
+                  return;
    }
 
    double atrPts = GetATRPoints();
@@ -7717,8 +7630,6 @@ void UpdateReduceBothAvailability()
 void UpdateInterface()
 {
    UpdateTodayRealizedPanel();
-   UpdateATRContextPanel();
-   UpdateEntryEnginePanel();
    UpdateSelectedReductionPanel();
 
    ResetAllButtonVisualStates();
@@ -7796,19 +7707,6 @@ void UpdateInterface()
    );
 
    //-----------------------------------------------------------------
-   // EXPOSICAO
-   //-----------------------------------------------------------------
-
-   UpdateLabel(
-      OBJ_LBL_EXPOSURE,
-      "EXPOSICAO: "+
-      DoubleToString(
-         exposure,
-         2
-      ),
-      clrSilver
-   );
-
    //-----------------------------------------------------------------
    // REALIZADO
    //-----------------------------------------------------------------
@@ -8666,7 +8564,6 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_LBL_BUY);
    DeleteObjectSafe(OBJ_LBL_SELL);
    DeleteObjectSafe(OBJ_LBL_NET);
-   DeleteObjectSafe(OBJ_LBL_EXPOSURE);
 
    DeleteObjectSafe(OBJ_LBL_REALIZED);
    DeleteObjectSafe(OBJ_LBL_OPEN);
@@ -8721,14 +8618,7 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_LBL_STATUS);
    DeleteObjectSafe(OBJ_LBL_CHART_PROFIT);
 
-   DeleteObjectSafe(OBJ_LBL_ATR);
-   DeleteObjectSafe(OBJ_LBL_ATR_REGIME);
-   DeleteObjectSafe(OBJ_LBL_SIGNAL_BUY);
-   DeleteObjectSafe(OBJ_LBL_SIGNAL_SELL);
 
-   DeleteObjectSafe(OBJ_LBL_ENTRY_CONTEXT);
-   DeleteObjectSafe(OBJ_LBL_ENTRY_SIGNAL);
-   DeleteObjectSafe(OBJ_LBL_ENTRY_SCORE);
 
    DeleteObjectSafe(OBJ_LINE_AVG_BUY);
    DeleteObjectSafe(OBJ_LINE_BE);
@@ -8855,8 +8745,6 @@ int OnInit()
    ChartRedraw();
 
    BuildInterface();
-   UpdateATRContextPanel();
-   UpdateEntryEnginePanel();
    // Campos TAKE/STOP: mais espaço, fonte maior e texto centralizado.
    if(ObjectFind(0,OBJ_EDIT_TARGET)>=0)
    {
