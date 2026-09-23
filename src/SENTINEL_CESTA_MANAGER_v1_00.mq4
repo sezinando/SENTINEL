@@ -925,9 +925,14 @@ void RenderPanel()
    }
 
    WinningOrder wins[];
+   bool winnersOnly=
+      InpSelectionEnabled ?
+      false :
+      !InpShowLosing;
+
    int count=CollectWinningOrders(
       wins,
-      !InpSelectionEnabled
+      winnersOnly
    );
 
    SortWinningOrders(wins);
