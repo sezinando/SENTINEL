@@ -41,6 +41,8 @@ input int      InpPanelWidth        = 300;
 input bool     InpShowPanel         = true;
 input bool     InpShowOrderTickets  = false;
 input bool     InpShowLosing        = false;
+input bool     InpSelectionEnabled  = true;
+input int      InpSelectionMax      = 2;
 input bool     InpShowSummary       = true;
 
 input color    InpPanelBorder       = clrSlateGray;
@@ -90,6 +92,7 @@ input color    InpButtonTextColor   = clrBlack;
 // Cor do botao REDUCE BxS.
 input color    InpReduceButtonColor = clrGold;
 input color    InpReduceTextColor   = clrBlack;
+input color    InpSelectedButtonColor = clrGold;
 
 
 //====================================================================
@@ -97,6 +100,115 @@ input color    InpReduceTextColor   = clrBlack;
 //====================================================================
 
 string PREFIX = "SCM_";
+string SelectionGlobalPrefix()
+{
+   return "SENTINEL_SELECTED_"+Symbol()+"_"+IntegerToString(InpMagicNumber)+"_";
+}
+
+string SelectionGlobalName(int slot)
+{
+   return SelectionGlobalPrefix()+IntegerToString(slot);
+}
+
+int GetSelectedTicket(int slot)
+{
+   if(slot<1 || slot>2)
+      return -1;
+
+   string name=SelectionGlobalName(slot);
+
+   if(!GlobalVariableCheck(name))
+      return -1;
+
+   int ticket=(int)GlobalVariableGet(name);
+
+   if(ticket<=0)
+      return -1;
+
+   return ticket;
+}
+
+int FindSelectedSlot(int ticket)
+{
+   if(ticket<=0)
+      return 0;
+
+   if(GetSelectedTicket(1)==ticket)
+      return 1;
+
+   if(GetSelectedTicket(2)==ticket)
+      return 2;
+
+   return 0;
+}
+
+int SelectionCount()
+{
+   int count=0;
+
+   if(GetSelectedTicket(1)>0)
+      count++;
+
+   if(GetSelectedTicket(2)>0)
+      count++;
+
+   return count;
+}
+
+void ClearSelectedTickets()
+{
+   GlobalVariableSet(SelectionGlobalName(1),0.0);
+   GlobalVariableSet(SelectionGlobalName(2),0.0);
+   GlobalVariablesFlush();
+}
+
+void ToggleSelectedTicket(int ticket)
+{
+   if(!InpSelectionEnabled || ticket<=0)
+      return;
+
+   int slot=FindSelectedSlot(ticket);
+
+   if(slot>0)
+   {
+      GlobalVariableSet(
+         SelectionGlobalName(slot),
+         0.0
+      );
+
+      GlobalVariablesFlush();
+      return;
+   }
+
+   int count=SelectionCount();
+
+   if(count>=MathMin(2,MathMax(1,InpSelectionMax)))
+      return;
+
+   if(GetSelectedTicket(1)<=0)
+      GlobalVariableSet(
+         SelectionGlobalName(1),
+         ticket
+      );
+   else
+      GlobalVariableSet(
+         SelectionGlobalName(2),
+         ticket
+      );
+
+   GlobalVariablesFlush();
+}
+
+bool IsSelectedTicket(int ticket)
+{
+   return FindSelectedSlot(ticket)>0;
+}
+
+void SetStatusSelectionHint()
+{
+   Print("SENTINEL CESTA MANAGER: selecao enviada ao SENTINEL.");
+}
+
 
 //====================================================================
 // ESTRUTURA
@@ -815,7 +927,7 @@ void RenderPanel()
    WinningOrder wins[];
    int count=CollectWinningOrders(
       wins,
-      true
+      !InpSelectionEnabled
    );
 
    SortWinningOrders(wins);
@@ -915,11 +1027,15 @@ void RenderPanel()
 
          CreateActionButton(
             name,
+            (IsSelectedTicket(wins[i].ticket) ?
+             "[SEL] " : "")+
             "BUY  "+label,
             leftX,
             y+
             buyRow*
             (InpButtonHeight+5),
+            IsSelectedTicket(wins[i].ticket) ?
+            InpSelectedButtonColor :
             InpBuyButtonColor,
             InpButtonTextColor
          );
@@ -943,11 +1059,15 @@ void RenderPanel()
 
          CreateActionButton(
             name,
+            (IsSelectedTicket(wins[i].ticket) ?
+             "[SEL] " : "")+
             "SELL "+label,
             rightX,
             y+
             sellRow*
             (InpButtonHeight+5),
+            IsSelectedTicket(wins[i].ticket) ?
+            InpSelectedButtonColor :
             InpSellButtonColor,
             InpButtonTextColor
          );
@@ -1000,6 +1120,57 @@ void OnChartEvent(
    const double &dparam,
    const string &sparam)
 {
+   if(id!=CHARTEVENT_OBJECT_CLICK)
+      return;
+
+   if(InpSelectionEnabled)
+   {
+      string buyPrefix=PREFIX+"BTN_BUY_";
+      string sellPrefix=PREFIX+"BTN_SELL_";
+
+      if(StringFind(sparam,buyPrefix,0)==0 ||
+         StringFind(sparam,sellPrefix,0)==0)
+      {
+         string ticketText=
+            ObjectGetString(
+               0,
+               sparam,
+               OBJPROP_TOOLTIP
+            );
+
+         int ticket=(int)StringToInteger(ticketText);
+
+         if(ticket>0)
+            ToggleSelectedTicket(ticket);
+
+         ObjectSetInteger(
+            0,
+            sparam,
+            OBJPROP_STATE,
+            false
+         );
+
+         RenderPanel();
+         return;
+      }
+
+      // A execucao pertence ao SENTINEL.
+      if(sparam==PREFIX+"BTN_REDUCE_BXS")
+      {
+         SetStatusSelectionHint();
+         ObjectSetInteger(
+            0,
+            sparam,
+            OBJPROP_STATE,
+            false
+         );
+         return;
+      }
+
+      return;
+   }
+
+
    if(id!=CHARTEVENT_OBJECT_CLICK)
       return;
 
@@ -1091,8 +1262,8 @@ void OnChartEvent(
       RenderPanel();
       return;
    }
-}
 
+}
 //====================================================================
 // CICLO DE VIDA
 //====================================================================
