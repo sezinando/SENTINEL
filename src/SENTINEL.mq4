@@ -6270,14 +6270,14 @@ void CreatePanel()
       0,
       OBJ_PANEL,
       OBJPROP_XDISTANCE,
-      UI_PANEL_X
+      4
    );
 
    ObjectSetInteger(
       0,
       OBJ_PANEL,
       OBJPROP_YDISTANCE,
-      UI_PANEL_Y
+      4
    );
 
    ObjectSetInteger(
@@ -7007,9 +7007,6 @@ void CreateEdit(
 #define UI_Y_STATUS               444
 #define UI_Y_REALIZED             468
 #define UI_Y_TODAY                490
-
-#define UI_PANEL_X                 4
-#define UI_PANEL_Y                 4
 
 //====================================================================
 // CONSTRUI INTERFACE
