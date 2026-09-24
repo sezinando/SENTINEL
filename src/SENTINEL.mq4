@@ -1204,7 +1204,7 @@ input ENUM_BASE_CORNER InpPanelCorner = CORNER_LEFT_UPPER;
 input int InpPanelX      = 4;
 input int InpPanelY      = 4;
 input int InpPanelWidth  = 300;
-input int InpPanelHeight = 420;
+input int InpPanelHeight = 560;
 
 #define UI_COLOR_CARD          C'30,30,30'
 #define UI_COLOR_CARD_BORDER   C'50,50,50'
@@ -7358,37 +7358,6 @@ void CreateEdit(
 
 //====================================================================
 //====================================================================
-// LAYOUT DO PAINEL
-//====================================================================
-// Coordenadas relativas ao canto configurado do painel.
-// O posicionamento final continua sendo tratado por PanelToX/PanelToY.
-#define UI_Y_TITLE              13
-#define UI_Y_SUBTITLE           28
-#define UI_Y_MAGIC              28
-#define UI_Y_SUMMARY            44
-#define UI_Y_LOTS               62
-#define UI_Y_TRADE              85
-#define UI_Y_FINANCE            115
-#define UI_Y_REDUCE             141
-#define UI_Y_SELECTED           172
-#define UI_Y_GROUP_TICKETS      188
-#define UI_Y_GROUP_AUTO         207
-#define UI_Y_GROUP_TARGET       228
-#define UI_Y_GROUP_REFERENCE    243
-#define UI_Y_GROUP_NET          259
-#define UI_Y_GROUP_EXPOSURE     259
-#define UI_Y_GROUP_RESULT       274
-#define UI_Y_GROUP_BUTTON       288
-#define UI_Y_TAKE               306
-#define UI_Y_STOP               328
-#define UI_Y_ENTRY_CONTEXT      376
-#define UI_Y_ENTRY_SCORE        388
-#define UI_Y_ENTRY_SIGNAL       400
-#define UI_Y_RED                394
-#define UI_Y_STATUS             394
-#define UI_Y_TODAY              400
-
-//====================================================================
 // CONSTRUI INTERFACE
 //====================================================================
 
@@ -7396,512 +7365,161 @@ void BuildInterface()
 {
    CreatePanel();
 
-   //===============================================================
-   // CABECALHO
-   //===============================================================
+   int curY = 8;
+   int margin = 10;
+   int contentW = InpPanelWidth - (margin * 2);
+   int halfW = (contentW - 4) / 2;
 
-   CreateLabel(
-      OBJ_LBL_TITLE,
-      "SENTINEL",
-      16,
-      UI_Y_TITLE,
-      11,
-      UI_COLOR_TEXT_MAIN
-   );
+   CreateLabel(OBJ_LBL_TITLE,"SENTINEL",margin,curY,10,UI_COLOR_TEXT_MAIN);
+   CreateLabel(OBJ_LBL_SYMBOL,Symbol()+"  TF "+IntegerToString(Period()),margin+105,curY+2,8,UI_COLOR_ACCENT);
+   CreateLabel(OBJ_LBL_MAGIC,"M:"+IntegerToString(InpMagicNumber),InpPanelWidth-58,curY+2,8,C'120,180,220');
 
-   CreateLabel(
-      OBJ_LBL_SYMBOL,
-      Symbol()+" TF "+IntegerToString(Period()),
-      130,
-      UI_Y_TITLE+2,
-      8,
-      UI_COLOR_ACCENT
-   );
+   curY += 20;
+   CreatePanelSeparator(PREFIX+"SEP_1",curY);
+   curY += 9;
 
-   CreateLabel(
-      OBJ_LBL_MAGIC,
-      "MAGIC: "+
-      (InpMagicNumber==-1 ? "TODOS" : IntegerToString(InpMagicNumber)),
-      198,
-      UI_Y_TITLE+2,
-      8,
-      C'120,180,220'
-   );
+   CreateLabel(OBJ_LBL_REALIZED,"REALIZADO: 0.00",margin,curY,8,UI_COLOR_TEXT_MAIN);
+   CreateLabel(OBJ_LBL_OPEN,"ABERTO: 0.00",margin+145,curY,8,UI_COLOR_TEXT_MAIN);
+   curY += 16;
+   CreateLabel(OBJ_LBL_TODAY_RESULT,"DIA: 0.00",margin,curY,9,InpProfitColor);
 
-   //===============================================================
-   // EXPOSICAO / LOTES
-   //===============================================================
+   curY += 22;
+   CreatePanelSeparator(PREFIX+"SEP_2",curY);
+   curY += 9;
 
-   CreateLabel(
-      OBJ_LBL_BUY,
-      "BUY: 0.00",
-      10,
-      UI_Y_SUMMARY,
-      8,
-      InpBuyColor
-   );
+   // BOLETA / LOTES
+   int btnW=40;
+   int btnH=20;
+   int lotX=margin;
 
-   CreateLabel(
-      OBJ_LBL_SELL,
-      "SELL: 0.00",
-      102,
-      UI_Y_SUMMARY,
-      8,
-      InpSellColor
-   );
+   CreateButton(OBJ_BTN_LOTS_MINUS_10,"-0.10",lotX,curY,btnW,btnH,UI_COLOR_CARD);
+   lotX += btnW+4;
+   CreateButton(OBJ_BTN_LOTS_MINUS_1,"-0.01",lotX,curY,btnW,btnH,UI_COLOR_CARD);
+   lotX += btnW+4;
+   CreateEdit(OBJ_EDIT_LOTS,DoubleToString(g_selectedLots,2),lotX,curY,60,btnH);
+   lotX += 64;
+   CreateButton(OBJ_BTN_LOTS_PLUS_1,"+0.01",lotX,curY,btnW,btnH,UI_COLOR_CARD);
+   lotX += btnW+4;
+   CreateButton(OBJ_BTN_LOTS_PLUS_10,"+0.10",lotX,curY,btnW,btnH,UI_COLOR_CARD);
 
-   CreateLabel(
-      OBJ_LBL_NET,
-      "NET: 0.00",
-      194,
-      UI_Y_SUMMARY,
-      8,
-      InpProfitColor
-   );
+   curY += btnH+8;
 
-   CreateLabel(
-      OBJ_LBL_REDUCE,
-      "LOTES",
-      10,
-      UI_Y_LOTS+3,
-      8,
-      UI_COLOR_TEXT_MUTED
-   );
+   CreateButton(OBJ_BTN_BUY,"COMPRAR",margin,curY,halfW,30,InpBuyColor);
+   CreateButton(OBJ_BTN_SELL,"VENDER",margin+halfW+4,curY,halfW,30,InpSellColor);
 
-   CreateButton(
-      OBJ_BTN_LOTS_MINUS_10,
-      "-10",
-      52,
-      UI_Y_LOTS,
-      28,
-      18,
-      InpSellColor
-   );
+   curY += 40;
+   CreatePanelSeparator(PREFIX+"SEP_3",curY);
+   curY += 9;
 
-   CreateButton(
-      OBJ_BTN_LOTS_MINUS_1,
-      "-1",
-      82,
-      UI_Y_LOTS,
-      28,
-      18,
-      InpSellColor
-   );
-
-   CreateEdit(
-      OBJ_EDIT_LOTS,
-      DoubleToString(g_selectedLots,2),
-      112,
-      UI_Y_LOTS,
-      46,
-      18
-   );
-
-   CreateButton(
-      OBJ_BTN_LOTS_PLUS_1,
-      "+1",
-      162,
-      UI_Y_LOTS,
-      28,
-      18,
-      InpBuyColor
-   );
-
-   CreateButton(
-      OBJ_BTN_LOTS_PLUS_10,
-      "+10",
-      192,
-      UI_Y_LOTS,
-      32,
-      18,
-      InpBuyColor
-   );
-
-   CreateLabel(
-      OBJ_LBL_OPEN,
-      "ABERTO: 0.00",
-      10,
-      UI_Y_FINANCE,
-      8,
-      InpBuyColor
-   );
-
-   CreateLabel(
-      OBJ_LBL_REALIZED,
-      "REALIZADO: 0.00",
-      102,
-      UI_Y_FINANCE,
-      8,
-      UI_COLOR_TEXT_MUTED
-   );
-
-   CreateLabel(
-      OBJ_LBL_TODAY_RESULT,
-      "DIA: 0.00",
-      194,
-      UI_Y_FINANCE,
-      8,
-      InpProfitColor
-   );
-
-   //===============================================================
-   // BUY / SELL
-   //===============================================================
-
-   CreateButton(
-      OBJ_BTN_BUY,
-      "COMPRAR",
-      10,
-      UI_Y_TRADE,
-      132,
-      26,
-      InpBuyColor
-   );
-
-   CreateButton(
-      OBJ_BTN_SELL,
-      "VENDER",
-      148,
-      UI_Y_TRADE,
-      132,
-      26,
-      InpSellColor
-   );
-
-   //===============================================================
    // REDUCOES RAPIDAS
-   //===============================================================
+   int redH=22;
 
-   CreateButton(
-      OBJ_BTN_REDUCE_BUY_WIN,
-      "BUY WIN",
-      10,
-      UI_Y_REDUCE,
-      64,
-      18,
-      C'70,75,140'
-   );
+   CreateButton(OBJ_BTN_REDUCE_BUY_WIN,"RED BUY (+)",margin,curY,halfW,redH,UI_COLOR_CARD);
+   CreateButton(OBJ_BTN_REDUCE_SELL_WIN,"RED SELL (+)",margin+halfW+4,curY,halfW,redH,UI_COLOR_CARD);
+   curY += redH+4;
 
-   CreateButton(
-      OBJ_BTN_REDUCE_BUY_LOSS,
-      "BUY LOSS",
-      78,
-      UI_Y_REDUCE,
-      64,
-      18,
-      C'70,75,140'
-   );
+   CreateButton(OBJ_BTN_REDUCE_BUY_LOSS,"RED BUY (-)",margin,curY,halfW,redH,UI_COLOR_CARD);
+   CreateButton(OBJ_BTN_REDUCE_SELL_LOSS,"RED SELL (-)",margin+halfW+4,curY,halfW,redH,UI_COLOR_CARD);
+   curY += redH+5;
 
-   CreateButton(
-      OBJ_BTN_REDUCE_SELL_WIN,
-      "SELL WIN",
-      146,
-      UI_Y_REDUCE,
-      64,
-      18,
-      InpSellColor
-   );
+   CreateButton(OBJ_BTN_REDUCE_BOTH,"REDUZIR PARCIAL  BxS",margin,curY,contentW,redH,UI_COLOR_CARD);
 
-   CreateButton(
-      OBJ_BTN_REDUCE_SELL_LOSS,
-      "SELL LOSS",
-      214,
-      UI_Y_REDUCE,
-      66,
-      18,
-      InpSellColor
-   );
+   curY += redH+8;
+   CreatePanelSeparator(PREFIX+"SEP_4",curY);
+   curY += 9;
 
-   //===============================================================
-   // CURRENT GROUP / AUTO REDUCE
-   //===============================================================
+   // CURRENT GROUP
+   CreateLabel(OBJ_LBL_GROUP_TITLE,"CURRENT GROUP",margin,curY,8,UI_COLOR_TEXT_MAIN);
+   CreateButton(OBJ_BTN_CLEAR_SELECTED,"LIMPAR",InpPanelWidth-102,curY-2,44,18,UI_COLOR_NEUTRAL);
+   CreateButton(OBJ_BTN_AUTO_REDUCE,"AUTO OFF",InpPanelWidth-54,curY-2,44,18,UI_COLOR_NEUTRAL);
 
-   CreateLabel(
-      OBJ_LBL_GROUP_TITLE,
-      "CURRENT GROUP",
-      10,
-      UI_Y_SELECTED,
-      8,
-      UI_COLOR_TEXT_MAIN
-   );
+   curY += 18;
+   CreateLabel(OBJ_LBL_SELECTED_1,"T1 --",margin,curY,7,UI_COLOR_TEXT_MUTED);
+   CreateLabel(OBJ_LBL_SELECTED_2,"T2 --",margin+145,curY,7,UI_COLOR_TEXT_MUTED);
 
-   CreateButton(
-      OBJ_BTN_CLEAR_SELECTED,
-      "LIMPAR",
-      188,
-      UI_Y_SELECTED-2,
-      48,
-      18,
-      UI_COLOR_NEUTRAL
-   );
+   curY += 18;
+   CreateLabel(PREFIX+"LBL_AUTO_MIN","MIN",margin,curY+3,7,UI_COLOR_TEXT_MUTED);
+   CreateEdit(OBJ_EDIT_AUTO_MIN,DoubleToString(g_autoReduceMinProfit,2),margin+20,curY,48,18);
+   CreateLabel(PREFIX+"LBL_AUTO_LOTS","LOT",margin+76,curY+3,7,UI_COLOR_TEXT_MUTED);
+   CreateEdit(OBJ_EDIT_AUTO_LOTS,DoubleToString(g_autoReduceLots,2),margin+96,curY,48,18);
 
-   CreateButton(
-      OBJ_BTN_AUTO_REDUCE,
-      "AUTO OFF",
-      240,
-      UI_Y_SELECTED-2,
-      50,
-      18,
-      UI_COLOR_NEUTRAL
-   );
+   curY += 26;
+   CreateLabel(OBJ_LBL_GROUP_TARGET,"TARGET --",margin,curY,7,UI_COLOR_ACCENT);
+   curY += 15;
+   CreateLabel(OBJ_LBL_GROUP_REFERENCE,"REFERENCE --",margin,curY,7,UI_COLOR_TEXT_MUTED);
+   curY += 15;
 
-   CreateLabel(
-      OBJ_LBL_SELECTED_1,
-      "T1 --",
-      10,
-      UI_Y_GROUP_TICKETS,
-      7,
-      UI_COLOR_TEXT_MUTED
-   );
+   CreateLabel(OBJ_LBL_GROUP_NET,"NET --",margin,curY,7,UI_COLOR_TEXT_MUTED);
+   CreateLabel(OBJ_LBL_GROUP_EXPOSURE,"EXP --",margin+145,curY,7,UI_COLOR_TEXT_MUTED);
+   curY += 15;
 
-   CreateLabel(
-      OBJ_LBL_SELECTED_2,
-      "T2 --",
-      145,
-      UI_Y_GROUP_TICKETS,
-      7,
-      UI_COLOR_TEXT_MUTED
-   );
+   CreateLabel(OBJ_LBL_GROUP_RESULT,"RESULT --",margin,curY,7,UI_COLOR_TEXT_MUTED);
+   curY += 17;
 
-   CreateLabel(
-      PREFIX+"LBL_AUTO_MIN",
-      "MIN",
-      10,
-      UI_Y_GROUP_AUTO+3,
-      7,
-      UI_COLOR_TEXT_MUTED
-   );
+   CreateButton(OBJ_BTN_REDUCE_SELECTED,"REDUCE GROUP",margin,curY,contentW,20,UI_COLOR_NEUTRAL);
 
-   CreateEdit(
-      OBJ_EDIT_AUTO_MIN,
-      DoubleToString(g_autoReduceMinProfit,2),
-      30,
-      UI_Y_GROUP_AUTO,
-      48,
-      18
-   );
+   curY += 29;
+   CreatePanelSeparator(PREFIX+"SEP_5",curY);
+   curY += 9;
 
-   CreateLabel(
-      PREFIX+"LBL_AUTO_LOTS",
-      "LOT",
-      86,
-      UI_Y_GROUP_AUTO+3,
-      7,
-      UI_COLOR_TEXT_MUTED
-   );
-
-   CreateEdit(
-      OBJ_EDIT_AUTO_LOTS,
-      DoubleToString(g_autoReduceLots,2),
-      106,
-      UI_Y_GROUP_AUTO,
-      48,
-      18
-   );
-
-   CreateLabel(
-      OBJ_LBL_GROUP_TARGET,
-      "TARGET --",
-      10,
-      UI_Y_GROUP_TARGET,
-      7,
-      UI_COLOR_ACCENT
-   );
-
-   CreateLabel(
-      OBJ_LBL_GROUP_REFERENCE,
-      "REFERENCE --",
-      10,
-      UI_Y_GROUP_REFERENCE,
-      7,
-      UI_COLOR_TEXT_MUTED
-   );
-
-   CreateLabel(
-      OBJ_LBL_GROUP_NET,
-      "NET --",
-      10,
-      UI_Y_GROUP_NET,
-      7,
-      UI_COLOR_TEXT_MUTED
-   );
-
-   CreateLabel(
-      OBJ_LBL_GROUP_EXPOSURE,
-      "EXP --",
-      145,
-      UI_Y_GROUP_EXPOSURE,
-      7,
-      UI_COLOR_TEXT_MUTED
-   );
-
-   CreateLabel(
-      OBJ_LBL_GROUP_RESULT,
-      "RESULT --",
-      10,
-      UI_Y_GROUP_RESULT,
-      7,
-      UI_COLOR_TEXT_MUTED
-   );
-
-   CreateButton(
-      OBJ_BTN_REDUCE_SELECTED,
-      "REDUCE GROUP",
-      10,
-      UI_Y_GROUP_BUTTON,
-      280,
-      18,
-      UI_COLOR_NEUTRAL
-   );
-
-   //===============================================================
    // TAKE / STOP
-   //===============================================================
+   CreateLabel(OBJ_LBL_TARGET_MONEY,"TAKE: 0.00",margin,curY+2,8,InpTakeColor);
+   CreateButton(OBJ_BTN_TARGET_MINUS,"-",InpPanelWidth-70,curY,24,20,UI_COLOR_CARD);
+   CreateEdit(OBJ_EDIT_TARGET,DoubleToString(g_targetPoints,0),InpPanelWidth-104,curY,30,20);
+   CreateButton(OBJ_BTN_TARGET_PLUS,"+",InpPanelWidth-38,curY,24,20,UI_COLOR_CARD);
 
-   CreateLabel(
-      OBJ_LBL_TARGET_MONEY,
-      "TAKE",
-      10,
-      UI_Y_TAKE+2,
-      8,
-      InpTakeColor
-   );
+   curY += 26;
+   CreateLabel(OBJ_LBL_STOP_MONEY,"STOP: 0.00",margin,curY+2,8,InpStopColor);
+   CreateButton(OBJ_BTN_STOP_MINUS,"-",InpPanelWidth-70,curY,24,20,UI_COLOR_CARD);
+   CreateEdit(OBJ_EDIT_STOP,DoubleToString(g_stopPoints,0),InpPanelWidth-104,curY,30,20);
+   CreateButton(OBJ_BTN_STOP_PLUS,"+",InpPanelWidth-38,curY,24,20,UI_COLOR_CARD);
 
-   CreateButton(
-      OBJ_BTN_TARGET_MINUS,
-      "-",
-      160,
-      UI_Y_TAKE,
-      22,
-      18,
-      UI_COLOR_CARD
-   );
+   curY += 29;
+   CreateButton(OBJ_BTN_CLOSE_ALL,"FECHAR TUDO",margin,curY,contentW,24,InpSellColor);
 
-   CreateEdit(
-      OBJ_EDIT_TARGET,
-      DoubleToString(g_targetPoints,0),
-      185,
-      UI_Y_TAKE,
-      55,
-      18
-   );
+   curY += 31;
+   CreatePanelSeparator(PREFIX+"SEP_6",curY);
+   curY += 8;
 
-   CreateButton(
-      OBJ_BTN_TARGET_PLUS,
-      "+",
-      243,
-      UI_Y_TAKE,
-      22,
-      18,
-      UI_COLOR_CARD
-   );
-
-   CreateLabel(
-      OBJ_LBL_STOP_MONEY,
-      "STOP",
-      10,
-      UI_Y_STOP+2,
-      8,
-      InpStopColor
-   );
-
-   CreateButton(
-      OBJ_BTN_STOP_MINUS,
-      "-",
-      160,
-      UI_Y_STOP,
-      22,
-      18,
-      UI_COLOR_CARD
-   );
-
-   CreateEdit(
-      OBJ_EDIT_STOP,
-      DoubleToString(g_stopPoints,0),
-      185,
-      UI_Y_STOP,
-      55,
-      18
-   );
-
-   CreateButton(
-      OBJ_BTN_STOP_PLUS,
-      "+",
-      243,
-      UI_Y_STOP,
-      22,
-      18,
-      UI_COLOR_CARD
-   );
-
-   //===============================================================
-   // CLOSE ALL
-   //===============================================================
-
-   CreateButton(
-      OBJ_BTN_CLOSE_ALL,
-      "CLOSE ALL",
-      10,
-      348,
-      270,
-      20,
-      InpSellColor
-   );
-
-   //===============================================================
    // ENTRY ENGINE
-   //===============================================================
+   CreateLabel(OBJ_LBL_ENTRY_CONTEXT,"CONTEXTO: --",margin,curY,7,UI_COLOR_TEXT_MUTED);
+   curY += 13;
+   CreateLabel(OBJ_LBL_ENTRY_SCORE,"NOVA: -- | AGUARDAR",margin,curY,7,UI_COLOR_TEXT_MUTED);
+   curY += 13;
+   CreateLabel(OBJ_LBL_ENTRY_SIGNAL,"AGUARDAR",margin,curY,8,UI_COLOR_ACCENT);
 
-   CreateLabel(
-      OBJ_LBL_ENTRY_CONTEXT,
-      "CONTEXTO: --",
-      10,
-      UI_Y_ENTRY_CONTEXT,
-      7,
-      UI_COLOR_TEXT_MUTED
-   );
+   curY += 21;
+   CreateButton(OBJ_BTN_RED,"RED",InpPanelWidth-60,curY-18,50,20,clrDarkGoldenrod);
+   CreateLabel(OBJ_LBL_STATUS,"SENTINEL ATIVO",margin,curY,7,InpBuyColor);
 
-   CreateLabel(
-      OBJ_LBL_ENTRY_SCORE,
-      "NOVA: -- | AGUARDAR",
-      10,
-      UI_Y_ENTRY_SCORE,
-      7,
-      UI_COLOR_TEXT_MUTED
-   );
-
-   CreateLabel(
-      OBJ_LBL_ENTRY_SIGNAL,
-      "AGUARDAR",
-      10,
-      UI_Y_ENTRY_SIGNAL,
-      8,
-      UI_COLOR_ACCENT
-   );
-
-   //===============================================================
-   // STATUS / RED
-   //===============================================================
-
-   CreateButton(
-      OBJ_BTN_RED,
-      "RED",
-      230,
-      UI_Y_RED,
-      50,
-      18,
-      clrDarkGoldenrod
-   );
-
-   CreateLabel(
-      OBJ_LBL_STATUS,
-      "SENTINEL ATIVO",
-      150,
-      UI_Y_STATUS,
-      7,
-      InpBuyColor
-   );
+   ChartRedraw();
 }
+
+void CreatePanelSeparator(string name,int relY)
+{
+   if(ObjectFind(0,name)<0)
+   {
+      ObjectCreate(0,name,OBJ_RECTANGLE_LABEL,0,0,0);
+   }
+
+   int relX=5;
+   int width=InpPanelWidth-10;
+
+   ObjectSetInteger(0,name,OBJPROP_CORNER,InpPanelCorner);
+   ObjectSetInteger(0,name,OBJPROP_XDISTANCE,PanelToX(relX,width));
+   ObjectSetInteger(0,name,OBJPROP_YDISTANCE,PanelToY(relY,1));
+   ObjectSetInteger(0,name,OBJPROP_XSIZE,width);
+   ObjectSetInteger(0,name,OBJPROP_YSIZE,1);
+   ObjectSetInteger(0,name,OBJPROP_BGCOLOR,UI_COLOR_CARD_BORDER);
+   ObjectSetInteger(0,name,OBJPROP_COLOR,UI_COLOR_CARD_BORDER);
+   ObjectSetInteger(0,name,OBJPROP_BORDER_TYPE,BORDER_FLAT);
+   ObjectSetInteger(0,name,OBJPROP_BACK,false);
+   ObjectSetInteger(0,name,OBJPROP_SELECTABLE,false);
+   ObjectSetInteger(0,name,OBJPROP_SELECTED,false);
+   ObjectSetInteger(0,name,OBJPROP_HIDDEN,true);
+   ObjectSetInteger(0,name,OBJPROP_ZORDER,2);
+}
+
 //====================================================================
 // ATR — CONTEXTO OPERACIONAL
 //====================================================================
@@ -9132,6 +8750,13 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_LBL_GROUP_NET);
    DeleteObjectSafe(OBJ_LBL_GROUP_EXPOSURE);
    DeleteObjectSafe(OBJ_LBL_GROUP_RESULT);
+
+   DeleteObjectSafe(PREFIX+"SEP_1");
+   DeleteObjectSafe(PREFIX+"SEP_2");
+   DeleteObjectSafe(PREFIX+"SEP_3");
+   DeleteObjectSafe(PREFIX+"SEP_4");
+   DeleteObjectSafe(PREFIX+"SEP_5");
+   DeleteObjectSafe(PREFIX+"SEP_6");
 
    DeleteObjectSafe(OBJ_BTN_CLOSE_ALL);
    DeleteObjectSafe(OBJ_BTN_RED);
