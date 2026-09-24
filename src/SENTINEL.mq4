@@ -6211,56 +6211,32 @@ bool ExecuteSell(
 // Quando o painel vai para direita/baixo, convertemos essas coordenadas
 // para que TODOS os objetos mantenham exatamente o mesmo layout interno.
 
-int PanelObjectX(int localX,int objectWidth)
+int PanelObjectX(int relX,int objectWidth)
 {
    int chartWidth=(int)ChartGetInteger(0,CHART_WIDTH_IN_PIXELS,0);
-   int panelLeft;
-
-   if(InpPanelCorner==CORNER_RIGHT_UPPER ||
-      InpPanelCorner==CORNER_RIGHT_LOWER)
-      panelLeft=
-         chartWidth-
-         InpPanelX-
-         InpPanelWidth;
-   else
-      panelLeft=InpPanelX;
-
-   int objectLeft=panelLeft+localX;
 
    if(InpPanelCorner==CORNER_RIGHT_UPPER ||
       InpPanelCorner==CORNER_RIGHT_LOWER)
       return MathMax(
          0,
-         chartWidth-objectLeft-objectWidth
+         chartWidth-InpPanelX-InpPanelWidth+relX
       );
 
-   return MathMax(0,objectLeft);
+   return MathMax(0,InpPanelX+relX);
 }
 
-int PanelObjectY(int localY,int objectHeight)
+int PanelObjectY(int relY,int objectHeight)
 {
    int chartHeight=(int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS,0);
-   int panelTop;
-
-   if(InpPanelCorner==CORNER_LEFT_LOWER ||
-      InpPanelCorner==CORNER_RIGHT_LOWER)
-      panelTop=
-         chartHeight-
-         InpPanelY-
-         InpPanelHeight;
-   else
-      panelTop=InpPanelY;
-
-   int objectTop=panelTop+localY;
 
    if(InpPanelCorner==CORNER_LEFT_LOWER ||
       InpPanelCorner==CORNER_RIGHT_LOWER)
       return MathMax(
          0,
-         chartHeight-objectTop-objectHeight
+         chartHeight-InpPanelY-InpPanelHeight+relY
       );
 
-   return MathMax(0,objectTop);
+   return MathMax(0,InpPanelY+relY);
 }
 
 int EstimateLabelWidth(string text,int fontSize)
