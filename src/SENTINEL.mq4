@@ -7495,12 +7495,8 @@ void BuildInterface()
    CreateLabel(OBJ_LBL_STATUS,"SENTINEL ATIVO",margin,curY,7,InpBuyColor);
 
    //===============================================================
-   // EXPOSICAO
-   //===============================================================
-
-   curY += 22;
-   CreatePanelSeparator(PREFIX+"SEP_7",curY);
-   curY += 7;
+   // EXPOSICAO no rodape.
+   curY += 18;
 
    CreateLabel(
       OBJ_LBL_EXPOSURE,
@@ -7511,7 +7507,7 @@ void BuildInterface()
       UI_COLOR_TEXT_MUTED
    );
 
-   curY += 14;
+   curY += 13;
 
    CreateLabel(
       OBJ_LBL_BUY,
@@ -7538,6 +7534,27 @@ void BuildInterface()
       curY,
       8,
       InpProfitColor
+   );
+
+   curY += 19;
+
+   CreateButton(
+      OBJ_BTN_RED,
+      "RED",
+      InpPanelWidth-60,
+      curY-18,
+      50,
+      20,
+      clrDarkGoldenrod
+   );
+
+   CreateLabel(
+      OBJ_LBL_STATUS,
+      "SENTINEL ATIVO",
+      margin,
+      curY,
+      7,
+      InpBuyColor
    );
 
    ChartRedraw();
