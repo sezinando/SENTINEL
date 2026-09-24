@@ -6239,182 +6239,6 @@ int PanelObjectY(int localY,int objectHeight)
    return MathMax(0,originY+localY);
 }
 
-int PanelLabelX(int localX)
-{
-   if(InpPanelCorner==CORNER_RIGHT_UPPER ||
-      InpPanelCorner==CORNER_RIGHT_LOWER)
-      return MathMax(
-         0,
-         InpPanelX+InpPanelWidth-localX
-      );
-
-   return MathMax(0,InpPanelX+localX);
-}
-
-int PanelLabelY(int localY)
-{
-   if(InpPanelCorner==CORNER_LEFT_LOWER ||
-      InpPanelCorner==CORNER_RIGHT_LOWER)
-      return MathMax(
-         0,
-         InpPanelY+InpPanelHeight-localY
-      );
-
-   return MathMax(0,InpPanelY+localY);
-}
-
-int EstimateLabelWidth(string text,int fontSize)
-{
-   int n=StringLen(text);
-
-   // Aproximacao conservadora para Arial.
-   int width=(int)MathRound(n*fontSize*0.62);
-
-   if(width<1)
-      width=1;
-
-   if(width>InpPanelWidth)
-      width=InpPanelWidth;
-
-   return width;
-}
-
-void CreatePanel()
-{
-   if(ObjectFind(
-      0,
-      OBJ_PANEL)<0)
-   {
-      ObjectCreate(
-         0,
-         OBJ_PANEL,
-         OBJ_RECTANGLE_LABEL,
-         0,
-         0,
-         0
-      );
-   }
-
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_CORNER,
-      InpPanelCorner
-   );
-
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_XDISTANCE,
-      InpPanelX
-   );
-
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_YDISTANCE,
-      InpPanelY
-   );
-
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_XSIZE,
-      InpPanelWidth
-   );
-
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_YSIZE,
-      InpPanelHeight
-   );
-
-   // Fundo totalmente opaco.
-   // Fundo SOLIDO do painel.
-   // O OBJ_RECTANGLE_LABEL deve ficar na frente do grafico.
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_BGCOLOR,
-      clrBlack
-   );
-
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_COLOR,
-      clrBlack
-   );
-
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_BACK,
-      false
-   );
-
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_ZORDER,
-      1
-   );
-
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_BORDER_COLOR,
-      clrDimGray
-   );
-
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_SELECTABLE,
-      false
-   );
-
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_SELECTED,
-      false
-   );
-
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_HIDDEN,
-      false
-   );
-
-   // O painel fica na frente das velas e dos niveis.
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_BACK,
-      false
-   );
-
-   // O painel e somente o FUNDO.
-   // Ele nao pode ficar acima dos botoes/campos, pois nesse caso
-   // captura os cliques e impede OBJ_BUTTON/OBJ_EDIT de receberem
-   // CHARTEVENT_OBJECT_CLICK / ENDEDIT.
-   ObjectSetInteger(
-      0,
-      OBJ_PANEL,
-      OBJPROP_ZORDER,
-      1
-   );
-
-   ChartRedraw();
-}
-
-//====================================================================
-// LABEL
-//====================================================================
-
 void CreateLabel(
    string name,
    string text,
@@ -6455,14 +6279,14 @@ void CreateLabel(
       0,
       name,
       OBJPROP_XDISTANCE,
-      PanelLabelX(x)
+      PanelObjectX(x,EstimateLabelWidth(text,size))
    );
 
    ObjectSetInteger(
       0,
       name,
       OBJPROP_YDISTANCE,
-      PanelLabelY(y)
+      PanelObjectY(y,size+4)
    );
 
    ObjectSetInteger(
