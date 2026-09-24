@@ -7886,7 +7886,7 @@ void BuildInterface()
    CreateLabel(
       OBJ_LBL_STATUS,
       "SENTINEL ATIVO",
-      10,
+      150,
       UI_Y_STATUS,
       7,
       InpBuyColor
