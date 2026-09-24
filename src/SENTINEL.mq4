@@ -8321,6 +8321,32 @@ void SetSelectedLots(double lots)
    );
 }
 
+void AdjustLotsByAmount(double amount)
+{
+   double lots=GetSelectedLots();
+
+   lots += amount;
+
+   lots=NormalizeLots(lots);
+
+   if(lots<MinLot())
+      lots=MinLot();
+
+   if(lots>MaxLot())
+      lots=MaxLot();
+
+   SetSelectedLots(lots);
+   GlobalVariableSet(SelectedLotsGlobalName(),g_selectedLots);
+
+   SetStatus(
+      "LOTE "+
+      DoubleToString(lots,2),
+      clrWhite
+   );
+
+   ChartRedraw();
+}
+
 void AdjustLotsByStep(double multiplier)
 {
    double step=LotStep();
@@ -8428,7 +8454,7 @@ void ProcessButton(
 
    if(name==OBJ_BTN_LOTS_MINUS_10)
    {
-      AdjustLotsByStep(-10.0);
+      AdjustLotsByAmount(-0.10);
       return;
    }
 
@@ -8437,7 +8463,7 @@ void ProcessButton(
 
    if(name==OBJ_BTN_LOTS_MINUS_1)
    {
-      AdjustLotsByStep(-1.0);
+      AdjustLotsByAmount(-0.01);
       return;
    }
 
@@ -8446,7 +8472,7 @@ void ProcessButton(
 
    if(name==OBJ_BTN_LOTS_PLUS_1)
    {
-      AdjustLotsByStep(1.0);
+      AdjustLotsByAmount(0.01);
       return;
    }
 
@@ -8455,7 +8481,7 @@ void ProcessButton(
 
    if(name==OBJ_BTN_LOTS_PLUS_10)
    {
-      AdjustLotsByStep(10.0);
+      AdjustLotsByAmount(0.10);
       return;
    }
 
