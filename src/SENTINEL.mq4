@@ -6211,7 +6211,7 @@ bool ExecuteSell(
 // Quando o painel vai para direita/baixo, convertemos essas coordenadas
 // para que TODOS os objetos mantenham exatamente o mesmo layout interno.
 
-int PanelObjectX(int relX,int objectWidth)
+int PanelToX(int relX,int objectWidth)
 {
    if(InpPanelCorner==CORNER_RIGHT_UPPER ||
       InpPanelCorner==CORNER_RIGHT_LOWER)
@@ -6229,7 +6229,7 @@ int PanelObjectX(int relX,int objectWidth)
    );
 }
 
-int PanelObjectY(int relY,int objectHeight)
+int PanelToY(int relY,int objectHeight)
 {
    if(InpPanelCorner==CORNER_LEFT_LOWER ||
       InpPanelCorner==CORNER_RIGHT_LOWER)
@@ -6439,14 +6439,14 @@ void CreateLabel(
       0,
       name,
       OBJPROP_XDISTANCE,
-      PanelObjectX(x,EstimateLabelWidth(text,size))
+      PanelToX(x,EstimateLabelWidth(text,size))
    );
 
    ObjectSetInteger(
       0,
       name,
       OBJPROP_YDISTANCE,
-      PanelObjectY(y,size+4)
+      PanelToY(y,size+4)
    );
 
    ObjectSetInteger(
@@ -6768,14 +6768,14 @@ void CreateButton(
       0,
       name,
       OBJPROP_XDISTANCE,
-      PanelObjectX(x,w)
+      PanelToX(x,w)
    );
 
    ObjectSetInteger(
       0,
       name,
       OBJPROP_YDISTANCE,
-      PanelObjectY(y,h)
+      PanelToY(y,h)
    );
 
    ObjectSetInteger(
@@ -6907,14 +6907,14 @@ void CreateEdit(
       0,
       name,
       OBJPROP_XDISTANCE,
-      PanelObjectX(x,w)
+      PanelToX(x,w)
    );
 
    ObjectSetInteger(
       0,
       name,
       OBJPROP_YDISTANCE,
-      PanelObjectY(y,h)
+      PanelToY(y,h)
    );
 
    ObjectSetInteger(
