@@ -6213,30 +6213,54 @@ bool ExecuteSell(
 
 int PanelObjectX(int localX,int objectWidth)
 {
-   int originX=InpPanelX;
+   int chartWidth=(int)ChartGetInteger(0,CHART_WIDTH_IN_PIXELS,0);
+   int panelLeft;
+
+   if(InpPanelCorner==CORNER_RIGHT_UPPER ||
+      InpPanelCorner==CORNER_RIGHT_LOWER)
+      panelLeft=
+         chartWidth-
+         InpPanelX-
+         InpPanelWidth;
+   else
+      panelLeft=InpPanelX;
+
+   int objectLeft=panelLeft+localX;
 
    if(InpPanelCorner==CORNER_RIGHT_UPPER ||
       InpPanelCorner==CORNER_RIGHT_LOWER)
       return MathMax(
          0,
-         originX+InpPanelWidth-localX-objectWidth
+         chartWidth-objectLeft-objectWidth
       );
 
-   return MathMax(0,originX+localX);
+   return MathMax(0,objectLeft);
 }
 
 int PanelObjectY(int localY,int objectHeight)
 {
-   int originY=InpPanelY;
+   int chartHeight=(int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS,0);
+   int panelTop;
+
+   if(InpPanelCorner==CORNER_LEFT_LOWER ||
+      InpPanelCorner==CORNER_RIGHT_LOWER)
+      panelTop=
+         chartHeight-
+         InpPanelY-
+         InpPanelHeight;
+   else
+      panelTop=InpPanelY;
+
+   int objectTop=panelTop+localY;
 
    if(InpPanelCorner==CORNER_LEFT_LOWER ||
       InpPanelCorner==CORNER_RIGHT_LOWER)
       return MathMax(
          0,
-         originY+InpPanelHeight-localY-objectHeight
+         chartHeight-objectTop-objectHeight
       );
 
-   return MathMax(0,originY+localY);
+   return MathMax(0,objectTop);
 }
 
 int EstimateLabelWidth(string text,int fontSize)
@@ -6756,39 +6780,18 @@ void CreateButton(
       InpPanelCorner
    );
 
-   // Coordenadas sao relativas ao painel.
-   // Para o canto direito, MT4 mede X a partir da direita da tela.
-   int buttonX=InpPanelX+x;
-   int buttonY=InpPanelY+y;
-
-   if(InpPanelCorner==CORNER_RIGHT_UPPER ||
-      InpPanelCorner==CORNER_RIGHT_LOWER)
-      buttonX=
-         InpPanelX+
-         InpPanelWidth-
-         x-
-         w;
-
-   if(InpPanelCorner==CORNER_LEFT_LOWER ||
-      InpPanelCorner==CORNER_RIGHT_LOWER)
-      buttonY=
-         InpPanelY+
-         InpPanelHeight-
-         y-
-         h;
-
    ObjectSetInteger(
       0,
       name,
       OBJPROP_XDISTANCE,
-      MathMax(0,buttonX)
+      PanelObjectX(x,w)
    );
 
    ObjectSetInteger(
       0,
       name,
       OBJPROP_YDISTANCE,
-      MathMax(0,buttonY)
+      PanelObjectY(y,h)
    );
 
    ObjectSetInteger(
