@@ -6756,18 +6756,39 @@ void CreateButton(
       InpPanelCorner
    );
 
+   // Coordenadas sao relativas ao painel.
+   // Para o canto direito, MT4 mede X a partir da direita da tela.
+   int buttonX=InpPanelX+x;
+   int buttonY=InpPanelY+y;
+
+   if(InpPanelCorner==CORNER_RIGHT_UPPER ||
+      InpPanelCorner==CORNER_RIGHT_LOWER)
+      buttonX=
+         InpPanelX+
+         InpPanelWidth-
+         x-
+         w;
+
+   if(InpPanelCorner==CORNER_LEFT_LOWER ||
+      InpPanelCorner==CORNER_RIGHT_LOWER)
+      buttonY=
+         InpPanelY+
+         InpPanelHeight-
+         y-
+         h;
+
    ObjectSetInteger(
       0,
       name,
       OBJPROP_XDISTANCE,
-      PanelObjectX(x,w)
+      MathMax(0,buttonX)
    );
 
    ObjectSetInteger(
       0,
       name,
       OBJPROP_YDISTANCE,
-      PanelObjectY(y,h)
+      MathMax(0,buttonY)
    );
 
    ObjectSetInteger(
