@@ -1200,12 +1200,19 @@ input ENUM_BASE_CORNER InpPanelCorner = CORNER_LEFT_UPPER;
 input int InpPanelX      = 4;
 input int InpPanelY      = 4;
 input int InpPanelWidth  = 300;
-input int InpPanelHeight = 500;
+input int InpPanelHeight = 520;
 
-input color InpPanelColor     = clrBlack;
-input color InpBuyColor       = clrDodgerBlue;
-input color InpSellColor      = clrRed;
-input color InpProfitColor    = clrLimeGreen;
+#define UI_COLOR_CARD          C'30,30,30'
+#define UI_COLOR_CARD_BORDER   C'50,50,50'
+#define UI_COLOR_TEXT_MAIN     C'240,240,240'
+#define UI_COLOR_TEXT_MUTED    C'150,150,150'
+#define UI_COLOR_NEUTRAL       C'60,60,60'
+#define UI_COLOR_ACCENT        C'210,153,34'
+
+input color InpPanelColor     = C'20,20,20';
+input color InpBuyColor       = C'46,160,67';
+input color InpSellColor      = C'218,54,51';
+input color InpProfitColor    = C'46,160,67';
 
 // Cores independentes dos precos medios reais.
 input color InpBuyAverageColor  = clrLimeGreen;
@@ -6263,6 +6270,124 @@ int EstimateLabelWidth(string text,int fontSize)
    return width;
 }
 
+void CreatePanelCard(
+   string name,
+   int relX,
+   int relY,
+   int w,
+   int h)
+{
+   if(ObjectFind(0,name)<0)
+   {
+      ObjectCreate(
+         0,
+         name,
+         OBJ_RECTANGLE_LABEL,
+         0,
+         0,
+         0
+      );
+   }
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_CORNER,
+      InpPanelCorner
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_XDISTANCE,
+      PanelToX(relX,w)
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_YDISTANCE,
+      PanelToY(relY,h)
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_XSIZE,
+      w
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_YSIZE,
+      h
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_BGCOLOR,
+      UI_COLOR_CARD
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_COLOR,
+      UI_COLOR_CARD_BORDER
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_BORDER_TYPE,
+      BORDER_FLAT
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_WIDTH,
+      1
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_BACK,
+      false
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_ZORDER,
+      2
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_SELECTABLE,
+      false
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_SELECTED,
+      false
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_HIDDEN,
+      true
+   );
+}
+
 void CreatePanel()
 {
    if(ObjectFind(
@@ -6349,7 +6474,7 @@ void CreatePanel()
       0,
       OBJ_PANEL,
       OBJPROP_BORDER_COLOR,
-      clrDimGray
+      UI_COLOR_CARD_BORDER
    );
 
    ObjectSetInteger(
@@ -6391,6 +6516,12 @@ void CreatePanel()
       OBJPROP_ZORDER,
       1
    );
+
+   // Cards visuais. Coordenadas relativas ao painel.
+   CreatePanelCard("SENTINEL_CARD_HEADER", 8, 8, 284, 72);
+   CreatePanelCard("SENTINEL_CARD_TRADING", 8, 82, 284, 100);
+   CreatePanelCard("SENTINEL_CARD_RISK", 8, 186, 284, 112);
+   CreatePanelCard("SENTINEL_CARD_GROUP", 8, 302, 284, 210);
 
    ChartRedraw();
 }
@@ -6467,7 +6598,7 @@ void CreateLabel(
       0,
       name,
       OBJPROP_FONT,
-      "Arial"
+      "Segoe UI"
    );
 
    ObjectSetString(
@@ -6802,6 +6933,13 @@ void CreateButton(
    ObjectSetInteger(
       0,
       name,
+      OBJPROP_BORDER_COLOR,
+      UI_COLOR_CARD_BORDER
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
       OBJPROP_COLOR,
       clrWhite
    );
@@ -6810,7 +6948,7 @@ void CreateButton(
       0,
       name,
       OBJPROP_FONTSIZE,
-      7
+      8
    );
 
    ObjectSetString(
@@ -6831,7 +6969,7 @@ void CreateButton(
       0,
       name,
       OBJPROP_SELECTABLE,
-      true
+      false
    );
 
    ObjectSetInteger(
@@ -6935,7 +7073,7 @@ void CreateEdit(
       0,
       name,
       OBJPROP_BGCOLOR,
-      clrBlack
+      C'15,15,15'
    );
 
    ObjectSetInteger(
@@ -6949,7 +7087,7 @@ void CreateEdit(
       0,
       name,
       OBJPROP_BORDER_COLOR,
-      clrDimGray
+      UI_COLOR_CARD_BORDER
    );
 
    // Centraliza o valor dentro do campo.
@@ -6992,7 +7130,7 @@ void CreateEdit(
       0,
       name,
       OBJPROP_FONT,
-      "Arial"
+      "Segoe UI"
    );
 
    ObjectSetString(
@@ -7053,7 +7191,7 @@ void BuildInterface()
       16,
       UI_Y_TITLE,
       15,
-      clrWhite
+      UI_COLOR_TEXT_MAIN
    );
 
    CreateLabel(
@@ -7064,7 +7202,7 @@ void BuildInterface()
       16,
       UI_Y_SUBTITLE,
       8,
-      clrGold
+      UI_COLOR_ACCENT
    );
 
    CreateLabel(
@@ -7076,7 +7214,7 @@ void BuildInterface()
       190,
       UI_Y_SUBTITLE,
       8,
-      clrDeepSkyBlue
+      C'120,180,220'
    );
 
    //===============================================================
@@ -7120,7 +7258,7 @@ void BuildInterface()
       6,
       UI_Y_OPEN,
       11,
-      clrLimeGreen
+      InpBuyColor
    );
 
    //===============================================================
@@ -7133,7 +7271,7 @@ void BuildInterface()
       16,
       UI_Y_LOTS_LABEL,
       8,
-      clrSilver
+      UI_COLOR_TEXT_MUTED
    );
 
    CreateButton(
@@ -7143,7 +7281,7 @@ void BuildInterface()
       UI_Y_LOTS,
       25,
       20,
-      clrMaroon
+      InpSellColor
    );
 
    CreateButton(
@@ -7153,7 +7291,7 @@ void BuildInterface()
       UI_Y_LOTS,
       22,
       20,
-      clrMaroon
+      InpSellColor
    );
 
    CreateEdit(
@@ -7172,7 +7310,7 @@ void BuildInterface()
       UI_Y_LOTS,
       22,
       20,
-      clrDarkGreen
+      InpBuyColor
    );
 
    CreateButton(
@@ -7182,7 +7320,7 @@ void BuildInterface()
       UI_Y_LOTS,
       28,
       20,
-      clrDarkGreen
+      InpBuyColor
    );
 
    //===============================================================
@@ -7196,7 +7334,7 @@ void BuildInterface()
       UI_Y_TRADE,
       132,
       25,
-      clrForestGreen
+      InpBuyColor
    );
 
    CreateButton(
@@ -7206,7 +7344,7 @@ void BuildInterface()
       UI_Y_TRADE,
       132,
       25,
-      clrFireBrick
+      InpSellColor
    );
 
    //===============================================================
@@ -7220,7 +7358,7 @@ void BuildInterface()
       UI_Y_REDUCE_BOTH,
       270,
       24,
-      clrDimGray
+      UI_COLOR_NEUTRAL
    );
 
    //===============================================================
@@ -7234,7 +7372,7 @@ void BuildInterface()
       UI_Y_WIN_LOSS,
       65,
       24,
-      clrDarkSlateBlue
+      C'70,75,140'
    );
 
    CreateButton(
@@ -7244,7 +7382,7 @@ void BuildInterface()
       UI_Y_WIN_LOSS,
       65,
       24,
-      clrDarkSlateBlue
+      C'70,75,140'
    );
 
    CreateButton(
@@ -7254,7 +7392,7 @@ void BuildInterface()
       UI_Y_WIN_LOSS,
       65,
       24,
-      clrMaroon
+      InpSellColor
    );
 
    CreateButton(
@@ -7264,7 +7402,7 @@ void BuildInterface()
       UI_Y_WIN_LOSS,
       63,
       24,
-      clrMaroon
+      InpSellColor
    );
 
    //===============================================================
@@ -7287,7 +7425,7 @@ void BuildInterface()
       UI_Y_TAKE,
       22,
       20,
-      clrDarkGreen
+      InpBuyColor
    );
 
    CreateEdit(
@@ -7306,7 +7444,7 @@ void BuildInterface()
       UI_Y_TAKE,
       22,
       20,
-      clrDarkGreen
+      InpBuyColor
    );
 
    //===============================================================
@@ -7329,7 +7467,7 @@ void BuildInterface()
       UI_Y_STOP,
       22,
       20,
-      clrMaroon
+      InpSellColor
    );
 
    CreateEdit(
@@ -7348,7 +7486,7 @@ void BuildInterface()
       UI_Y_STOP,
       22,
       20,
-      clrMaroon
+      InpSellColor
    );
 
    //===============================================================
@@ -7376,7 +7514,7 @@ void BuildInterface()
       10,
       UI_Y_GROUP_TITLE,
       9,
-      clrWhite
+      UI_COLOR_TEXT_MAIN
    );
 
    CreateLabel(
@@ -7385,7 +7523,7 @@ void BuildInterface()
       10,
       UI_Y_GROUP_TICKETS,
       8,
-      clrSilver
+      UI_COLOR_TEXT_MUTED
    );
 
    CreateEdit(
@@ -7405,7 +7543,7 @@ void BuildInterface()
       120,
       UI_Y_GROUP_TICKETS,
       8,
-      clrSilver
+      UI_COLOR_TEXT_MUTED
    );
 
    CreateEdit(
@@ -7426,7 +7564,7 @@ void BuildInterface()
       UI_Y_GROUP_TICKET_EDIT,
       50,
       20,
-      clrDimGray
+      UI_COLOR_NEUTRAL
    );
 
    CreateLabel(
@@ -7435,7 +7573,7 @@ void BuildInterface()
       10,
       UI_Y_GROUP_TARGET,
       8,
-      clrGold
+      UI_COLOR_ACCENT
    );
 
    CreateLabel(
@@ -7444,7 +7582,7 @@ void BuildInterface()
       10,
       UI_Y_GROUP_REFERENCE,
       8,
-      clrSilver
+      UI_COLOR_TEXT_MUTED
    );
 
    CreateLabel(
@@ -7453,7 +7591,7 @@ void BuildInterface()
       10,
       UI_Y_GROUP_NET,
       8,
-      clrSilver
+      UI_COLOR_TEXT_MUTED
    );
 
    CreateLabel(
@@ -7462,7 +7600,7 @@ void BuildInterface()
       10,
       UI_Y_GROUP_EXPOSURE,
       8,
-      clrSilver
+      UI_COLOR_TEXT_MUTED
    );
 
    CreateLabel(
@@ -7471,7 +7609,7 @@ void BuildInterface()
       10,
       UI_Y_GROUP_RESULT,
       8,
-      clrSilver
+      UI_COLOR_TEXT_MUTED
    );
 
    CreateButton(
@@ -7481,7 +7619,7 @@ void BuildInterface()
       UI_Y_GROUP_BUTTON,
       270,
       24,
-      clrDimGray
+      UI_COLOR_NEUTRAL
    );
 
    // RED + STATUS
@@ -7503,7 +7641,7 @@ void BuildInterface()
       186,
       UI_Y_STATUS,
       8,
-      clrLimeGreen
+      InpBuyColor
    );
 
    //===============================================================
@@ -7516,7 +7654,7 @@ void BuildInterface()
       6,
       UI_Y_REALIZED,
       9,
-      clrLimeGreen
+      InpBuyColor
    );
 
    CreateLabel(
