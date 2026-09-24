@@ -1780,10 +1780,10 @@ void UpdateSelectedReductionPanel()
    double exposureAfter=buyAfter+sellAfter;
 
    string targetText=
-      "TARGET      T"+IntegerToString(g_selectedTargetTicket)+
-      "  "+SelectedTypeText(g_selectedTargetTicket)+
-      "  "+DoubleToString(g_selectedTargetLots,2)+
-      "  REDUCE "+DoubleToString(g_selectedReduceLots,2);
+      "T"+IntegerToString(g_selectedTargetTicket)+
+      " "+SelectedTypeText(g_selectedTargetTicket)+
+      " "+DoubleToString(g_selectedTargetLots,2)+
+      " R"+DoubleToString(g_selectedReduceLots,2);
 
    UpdateLabel(
       OBJ_LBL_GROUP_TARGET,
@@ -1793,10 +1793,10 @@ void UpdateSelectedReductionPanel()
 
    string referenceText=
       g_selectedReferenceTicket>0 ?
-      "REFERENCE   T"+IntegerToString(g_selectedReferenceTicket)+
-      "  "+SelectedTypeText(g_selectedReferenceTicket)+
-      "  "+DoubleToString(g_selectedReferenceLots,2) :
-      "REFERENCE   --";
+      "T"+IntegerToString(g_selectedReferenceTicket)+
+      " "+SelectedTypeText(g_selectedReferenceTicket)+
+      " "+DoubleToString(g_selectedReferenceLots,2) :
+      "--";
 
    UpdateLabel(
       OBJ_LBL_GROUP_REFERENCE,
@@ -1808,25 +1808,25 @@ void UpdateSelectedReductionPanel()
 
    UpdateLabel(
       OBJ_LBL_GROUP_NET,
-      "GROUP NET   "+
+      "NET "+
       DoubleToString(netBefore,2)+
-      " -> "+
+      " > "+
       DoubleToString(netAfter,2),
       netAfter>=0.0 ? InpProfitColor : InpStopColor
    );
 
    UpdateLabel(
       OBJ_LBL_GROUP_EXPOSURE,
-      "EXPOSURE    "+
+      "EXP "+
       DoubleToString(exposureBefore,2)+
-      " -> "+
+      " > "+
       DoubleToString(exposureAfter,2),
       clrSilver
    );
 
    UpdateLabel(
       OBJ_LBL_GROUP_RESULT,
-      "RESULT      "+FormatMoney(
+      "RES "+FormatMoney(
          g_selectedTargetResult+
          g_selectedReferenceResult
       ),
@@ -7360,12 +7360,12 @@ void CreateEdit(
 #define UI_Y_TRADE              85
 #define UI_Y_FINANCE            115
 #define UI_Y_REDUCE             141
-#define UI_Y_SELECTED           176
-#define UI_Y_GROUP_TARGET       216
-#define UI_Y_GROUP_REFERENCE    229
-#define UI_Y_GROUP_NET          242
-#define UI_Y_GROUP_EXPOSURE     255
-#define UI_Y_GROUP_RESULT       268
+#define UI_Y_SELECTED           172
+#define UI_Y_GROUP_TARGET       232
+#define UI_Y_GROUP_REFERENCE    247
+#define UI_Y_GROUP_NET          262
+#define UI_Y_GROUP_EXPOSURE     247
+#define UI_Y_GROUP_RESULT       232
 #define UI_Y_GROUP_BUTTON       284
 #define UI_Y_TAKE               306
 #define UI_Y_STOP               328
@@ -7604,11 +7604,13 @@ void BuildInterface()
    // CURRENT GROUP / AUTO REDUCE
    //===============================================================
 
+   // Titulo ocupa uma linha propria. Os campos de selecao ficam
+   // abaixo para evitar qualquer colisao visual.
    CreateLabel(
       OBJ_LBL_GROUP_TITLE,
       "CURRENT GROUP",
       10,
-      UI_Y_SELECTED-3,
+      UI_Y_SELECTED,
       8,
       UI_COLOR_TEXT_MAIN
    );
@@ -7616,9 +7618,9 @@ void BuildInterface()
    CreateEdit(
       OBJ_EDIT_SELECTED_1,
       "--",
-      78,
-      UI_Y_SELECTED,
-      55,
+      72,
+      UI_Y_SELECTED+15,
+      58,
       18
    );
    ObjectSetInteger(0,OBJ_EDIT_SELECTED_1,OBJPROP_READONLY,true);
@@ -7626,9 +7628,9 @@ void BuildInterface()
    CreateEdit(
       OBJ_EDIT_SELECTED_2,
       "--",
-      138,
-      UI_Y_SELECTED,
-      55,
+      134,
+      UI_Y_SELECTED+15,
+      58,
       18
    );
    ObjectSetInteger(0,OBJ_EDIT_SELECTED_2,OBJPROP_READONLY,true);
@@ -7636,9 +7638,9 @@ void BuildInterface()
    CreateButton(
       OBJ_BTN_CLEAR_SELECTED,
       "LIMPAR",
-      198,
-      UI_Y_SELECTED,
-      48,
+      196,
+      UI_Y_SELECTED+15,
+      46,
       18,
       UI_COLOR_NEUTRAL
    );
@@ -7646,18 +7648,19 @@ void BuildInterface()
    CreateButton(
       OBJ_BTN_AUTO_REDUCE,
       "AUTO OFF",
-      248,
-      UI_Y_SELECTED,
-      42,
+      246,
+      UI_Y_SELECTED+15,
+      44,
       18,
       UI_COLOR_NEUTRAL
    );
 
+   // Parametros do Auto Reduce em uma segunda linha independente.
    CreateLabel(
       PREFIX+"LBL_AUTO_MIN",
       "MIN",
       10,
-      UI_Y_SELECTED+22,
+      UI_Y_SELECTED+40,
       7,
       UI_COLOR_TEXT_MUTED
    );
@@ -7666,16 +7669,16 @@ void BuildInterface()
       OBJ_EDIT_AUTO_MIN,
       DoubleToString(g_autoReduceMinProfit,2),
       30,
-      UI_Y_SELECTED+19,
-      50,
+      UI_Y_SELECTED+37,
+      48,
       18
    );
 
    CreateLabel(
       PREFIX+"LBL_AUTO_LOTS",
       "LOT",
-      84,
-      UI_Y_SELECTED+22,
+      86,
+      UI_Y_SELECTED+40,
       7,
       UI_COLOR_TEXT_MUTED
    );
@@ -7683,54 +7686,55 @@ void BuildInterface()
    CreateEdit(
       OBJ_EDIT_AUTO_LOTS,
       DoubleToString(g_autoReduceLots,2),
-      103,
-      UI_Y_SELECTED+19,
-      45,
+      106,
+      UI_Y_SELECTED+37,
+      48,
       18
    );
 
+   // Informacoes dinamicas compactadas para caberem nas duas colunas.
    CreateLabel(
       OBJ_LBL_GROUP_TARGET,
-      "TARGET      --",
+      "TARGET --",
       10,
       UI_Y_GROUP_TARGET,
-      8,
+      7,
       UI_COLOR_ACCENT
    );
 
    CreateLabel(
-      OBJ_LBL_GROUP_REFERENCE,
-      "REFERENCE   --",
-      10,
-      UI_Y_GROUP_REFERENCE,
-      8,
+      OBJ_LBL_GROUP_RESULT,
+      "RESULT --",
+      190,
+      UI_Y_GROUP_RESULT,
+      7,
       UI_COLOR_TEXT_MUTED
    );
 
    CreateLabel(
-      OBJ_LBL_GROUP_NET,
-      "GROUP NET   --",
+      OBJ_LBL_GROUP_REFERENCE,
+      "REFERENCE --",
       10,
-      UI_Y_GROUP_NET,
-      8,
+      UI_Y_GROUP_REFERENCE,
+      7,
       UI_COLOR_TEXT_MUTED
    );
 
    CreateLabel(
       OBJ_LBL_GROUP_EXPOSURE,
-      "EXPOSURE    --",
-      145,
-      UI_Y_GROUP_NET,
-      8,
+      "EXPOSURE --",
+      190,
+      UI_Y_GROUP_EXPOSURE,
+      7,
       UI_COLOR_TEXT_MUTED
    );
 
    CreateLabel(
-      OBJ_LBL_GROUP_RESULT,
-      "RESULT      --",
-      145,
-      UI_Y_GROUP_REFERENCE,
-      8,
+      OBJ_LBL_GROUP_NET,
+      "GROUP NET --",
+      10,
+      UI_Y_GROUP_NET,
+      7,
       UI_COLOR_TEXT_MUTED
    );
 
