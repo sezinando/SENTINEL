@@ -2453,7 +2453,7 @@ void LoadPanelSettingsFromGlobals()
 
    string autoGV=AutoReduceEnabledGlobalName();
    string minGV=AutoReduceMinProfitGlobalName();
-   string lotsGV=AutoReduceLotsGlobalName();
+   string autoLotsGV=AutoReduceLotsGlobalName();
 
    if(GlobalVariableCheck(autoGV))
       g_autoReduceEnabled=(GlobalVariableGet(autoGV)>0.5);
@@ -2461,9 +2461,9 @@ void LoadPanelSettingsFromGlobals()
    if(GlobalVariableCheck(minGV))
       g_autoReduceMinProfit=MathMax(0.0,GlobalVariableGet(minGV));
 
-   if(GlobalVariableCheck(lotsGV))
+   if(GlobalVariableCheck(autoLotsGV))
    {
-      double storedLots=NormalizeLots(GlobalVariableGet(lotsGV));
+      double storedLots=NormalizeLots(GlobalVariableGet(autoLotsGV));
       if(storedLots>0.0)
          g_autoReduceLots=storedLots;
    }
