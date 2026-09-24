@@ -7464,14 +7464,14 @@ void BuildInterface()
 
    // TAKE / STOP
    CreateLabel(OBJ_LBL_TARGET_MONEY,"TAKE: 0.00",margin,curY+2,8,InpTakeColor);
-   CreateButton(OBJ_BTN_TARGET_MINUS,"-",InpPanelWidth-85,curY,24,20,UI_COLOR_CARD);
-   CreateEdit(OBJ_EDIT_TARGET,DoubleToString(g_targetPoints,0),InpPanelWidth-119,curY,45,20);
+   CreateButton(OBJ_BTN_TARGET_MINUS,"-",InpPanelWidth-111,curY,24,20,UI_COLOR_CARD);
+   CreateEdit(OBJ_EDIT_TARGET,DoubleToString(g_targetPoints,0),InpPanelWidth-83,curY,45,20);
    CreateButton(OBJ_BTN_TARGET_PLUS,"+",InpPanelWidth-38,curY,24,20,UI_COLOR_CARD);
 
    curY += 26;
    CreateLabel(OBJ_LBL_STOP_MONEY,"STOP: 0.00",margin,curY+2,8,InpStopColor);
-   CreateButton(OBJ_BTN_STOP_MINUS,"-",InpPanelWidth-85,curY,24,20,UI_COLOR_CARD);
-   CreateEdit(OBJ_EDIT_STOP,DoubleToString(g_stopPoints,0),InpPanelWidth-119,curY,45,20);
+   CreateButton(OBJ_BTN_STOP_MINUS,"-",InpPanelWidth-111,curY,24,20,UI_COLOR_CARD);
+   CreateEdit(OBJ_EDIT_STOP,DoubleToString(g_stopPoints,0),InpPanelWidth-83,curY,45,20);
    CreateButton(OBJ_BTN_STOP_PLUS,"+",InpPanelWidth-38,curY,24,20,UI_COLOR_CARD);
 
    curY += 29;
