@@ -1197,6 +1197,8 @@ void UpdateEntryEnginePanel()
 // 3 = inferior direito
 input ENUM_BASE_CORNER InpPanelCorner = CORNER_LEFT_UPPER;
 
+input int InpPanelX      = 4;
+input int InpPanelY      = 4;
 input int InpPanelWidth  = 300;
 input int InpPanelHeight = 500;
 
@@ -6211,20 +6213,30 @@ bool ExecuteSell(
 
 int PanelObjectX(int localX,int objectWidth)
 {
+   int originX=InpPanelX;
+
    if(InpPanelCorner==CORNER_RIGHT_UPPER ||
       InpPanelCorner==CORNER_RIGHT_LOWER)
-      return MathMax(0,InpPanelWidth-localX-objectWidth);
+      return MathMax(
+         0,
+         originX+InpPanelWidth-localX-objectWidth
+      );
 
-   return localX;
+   return MathMax(0,originX+localX);
 }
 
 int PanelObjectY(int localY,int objectHeight)
 {
+   int originY=InpPanelY;
+
    if(InpPanelCorner==CORNER_LEFT_LOWER ||
       InpPanelCorner==CORNER_RIGHT_LOWER)
-      return MathMax(0,InpPanelHeight-localY-objectHeight);
+      return MathMax(
+         0,
+         originY+InpPanelHeight-localY-objectHeight
+      );
 
-   return localY;
+   return MathMax(0,originY+localY);
 }
 
 int EstimateLabelWidth(string text,int fontSize)
@@ -6270,14 +6282,14 @@ void CreatePanel()
       0,
       OBJ_PANEL,
       OBJPROP_XDISTANCE,
-      4
+      InpPanelX
    );
 
    ObjectSetInteger(
       0,
       OBJ_PANEL,
       OBJPROP_YDISTANCE,
-      4
+      InpPanelY
    );
 
    ObjectSetInteger(
