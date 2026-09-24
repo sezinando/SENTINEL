@@ -1863,34 +1863,123 @@ bool ExecuteSelectedReduction()
 {
    if(!BuildSelectedReductionPlan())
    {
-      SetStatus(
-         "SELECAO INVALIDA",
-         InpStopColor
-      );
+      SetStatus("SELECAO INVALIDA",InpStopColor);
       return false;
    }
 
+   // WIN + LOSS: REDUCE GROUP operates on both legs.
+   // Other combinations keep the legacy single-target executor.
+   bool reduceBoth=
+      (g_selectedReferenceTicket>0 &&
+       ((g_selectedTargetResult>0.00000001 &&
+         g_selectedReferenceResult<-0.00000001) ||
+        (g_selectedTargetResult<-0.00000001 &&
+         g_selectedReferenceResult>0.00000001)));
+
+   if(reduceBoth)
+   {
+      int ticket1=g_selectedTargetTicket;
+      int ticket2=g_selectedReferenceTicket;
+
+      if(!OrderSelect(ticket1,SELECT_BY_TICKET,MODE_TRADES) ||
+         !IsOurOrder())
+      {
+         SetStatus("T1 NAO DISPONIVEL",InpStopColor);
+         return false;
+      }
+
+      double lots1=OrderLots();
+
+      if(!OrderSelect(ticket2,SELECT_BY_TICKET,MODE_TRADES) ||
+         !IsOurOrder())
+      {
+         SetStatus("T2 NAO DISPONIVEL",InpStopColor);
+         return false;
+      }
+
+      double lots2=OrderLots();
+
+      double closeLots=
+         NormalizeLots(
+            MathMin(
+               g_selectedReduceLots,
+               MathMin(lots1,lots2)
+            )
+         );
+
+      if(closeLots<=0.0)
+      {
+         SetStatus("LOTE INVALIDO",InpStopColor);
+         return false;
+      }
+
+      // Revalida ambos os tickets e o volume imediatamente antes de cada close.
+      if(!OrderSelect(ticket1,SELECT_BY_TICKET,MODE_TRADES) ||
+         !IsOurOrder() ||
+         OrderLots()<closeLots)
+      {
+         SetStatus("T1 INVALIDO",InpStopColor);
+         return false;
+      }
+
+      ResetLastError();
+
+      if(!PartialCloseTicket(ticket1,closeLots))
+      {
+         int err1=GetLastError();
+         SetStatus(
+            "REDUCE T1 ERRO "+IntegerToString(err1),
+            InpStopColor
+         );
+         return false;
+      }
+
+      if(!OrderSelect(ticket2,SELECT_BY_TICKET,MODE_TRADES) ||
+         !IsOurOrder() ||
+         OrderLots()<closeLots)
+      {
+         SetStatus(
+            "REDUCE PARCIAL T1 OK T2 INVALIDO",
+            InpStopColor
+         );
+         return false;
+      }
+
+      ResetLastError();
+
+      if(!PartialCloseTicket(ticket2,closeLots))
+      {
+         int err2=GetLastError();
+         SetStatus(
+            "REDUCE PARCIAL T1 OK T2 ERRO "+
+            IntegerToString(err2),
+            InpStopColor
+         );
+         return false;
+      }
+
+      SetStatus(
+         "REDUCE GROUP "+
+         DoubleToString(closeLots,2),
+         InpProfitColor
+      );
+
+      ClearSelectedTickets();
+      return true;
+   }
+
+   // Executor legado: uma unica ordem.
    int ticket=g_selectedTargetTicket;
 
-   // Revalida o ticket imediatamente antes da execucao.
-   if(!OrderSelect(
-      ticket,
-      SELECT_BY_TICKET,
-      MODE_TRADES))
+   if(!OrderSelect(ticket,SELECT_BY_TICKET,MODE_TRADES))
    {
-      SetStatus(
-         "TICKET NAO ENCONTRADO",
-         InpStopColor
-      );
+      SetStatus("TICKET NAO ENCONTRADO",InpStopColor);
       return false;
    }
 
    if(!IsOurOrder())
    {
-      SetStatus(
-         "TICKET FORA DA CESTA",
-         InpStopColor
-      );
+      SetStatus("TICKET FORA DA CESTA",InpStopColor);
       return false;
    }
 
@@ -1906,16 +1995,11 @@ bool ExecuteSelectedReduction()
 
    if(closeLots<=0.0)
    {
-      SetStatus(
-         "LOTE INVALIDO",
-         InpStopColor
-      );
+      SetStatus("LOTE INVALIDO",InpStopColor);
       return false;
    }
 
-   if(!PartialCloseTicket(
-      ticket,
-      closeLots))
+   if(!PartialCloseTicket(ticket,closeLots))
    {
       SetStatus(
          "REDUCE SELECIONADO ERRO "+
@@ -1931,10 +2015,7 @@ bool ExecuteSelectedReduction()
       InpProfitColor
    );
 
-   // A operacao consumiu a selecao. O Cesta Manager continuara
-   // mostrando a nova situacao da ordem.
    ClearSelectedTickets();
-
    return true;
 }
 
@@ -1988,11 +2069,21 @@ void EvaluateAutoReduce()
    if(groupResult < g_autoReduceMinProfit)
       return;
 
+   double autoAvailableLots=g_selectedTargetLots;
+
+   if(g_selectedReferenceTicket>0 &&
+      g_selectedTargetResult*g_selectedReferenceResult<0.0)
+      autoAvailableLots=
+         MathMin(
+            g_selectedTargetLots,
+            g_selectedReferenceLots
+         );
+
    double autoLots=
       NormalizeLots(
          MathMin(
             g_autoReduceLots,
-            g_selectedTargetLots
+            autoAvailableLots
          )
       );
 
