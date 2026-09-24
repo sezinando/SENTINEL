@@ -18,7 +18,7 @@
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
-#property version "3.11"
+#property version "3.12"
 
 //====================================================================
 // INPUTS
@@ -840,8 +840,19 @@ void SortWinningOrders(
    {
       for(int j=i+1;j<n;j++)
       {
-         // Maior lucro primeiro.
-         if(wins[j].result>wins[i].result)
+         // Maior lote primeiro.
+         // Em caso de empate, maior resultado primeiro.
+         bool shouldSwap=
+            (wins[j].lots>wins[i].lots);
+
+         if(!shouldSwap &&
+            MathAbs(wins[j].lots-wins[i].lots)<0.0000000001 &&
+            wins[j].result>wins[i].result)
+         {
+            shouldSwap=true;
+         }
+
+         if(shouldSwap)
          {
             WinningOrder temp=wins[i];
             wins[i]=wins[j];
@@ -1290,6 +1301,7 @@ void OnChartEvent(
    }
 
 }
+
 //====================================================================
 // CICLO DE VIDA
 //====================================================================
