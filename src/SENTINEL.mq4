@@ -7494,6 +7494,52 @@ void BuildInterface()
    CreateButton(OBJ_BTN_RED,"RED",InpPanelWidth-60,curY-18,50,20,clrDarkGoldenrod);
    CreateLabel(OBJ_LBL_STATUS,"SENTINEL ATIVO",margin,curY,7,InpBuyColor);
 
+   //===============================================================
+   // EXPOSICAO
+   //===============================================================
+
+   curY += 22;
+   CreatePanelSeparator(PREFIX+"SEP_7",curY);
+   curY += 7;
+
+   CreateLabel(
+      OBJ_LBL_EXPOSURE,
+      "EXPOSICAO",
+      margin,
+      curY,
+      7,
+      UI_COLOR_TEXT_MUTED
+   );
+
+   curY += 14;
+
+   CreateLabel(
+      OBJ_LBL_BUY,
+      "BUY: 0.00",
+      margin,
+      curY,
+      8,
+      InpBuyColor
+   );
+
+   CreateLabel(
+      OBJ_LBL_SELL,
+      "SELL: 0.00",
+      margin+82,
+      curY,
+      8,
+      InpSellColor
+   );
+
+   CreateLabel(
+      OBJ_LBL_NET,
+      "NET: 0.00 FLAT",
+      margin+164,
+      curY,
+      8,
+      InpProfitColor
+   );
+
    ChartRedraw();
 }
 
@@ -8733,6 +8779,7 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_LBL_BUY);
    DeleteObjectSafe(OBJ_LBL_SELL);
    DeleteObjectSafe(OBJ_LBL_NET);
+   DeleteObjectSafe(OBJ_LBL_EXPOSURE);
 
    DeleteObjectSafe(OBJ_LBL_REALIZED);
    DeleteObjectSafe(OBJ_LBL_OPEN);
