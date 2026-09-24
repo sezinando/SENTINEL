@@ -6941,7 +6941,7 @@ void CreateButton(
       0,
       name,
       OBJPROP_COLOR,
-      clrWhite
+      UI_COLOR_TEXT_MAIN
    );
 
    ObjectSetInteger(
@@ -6955,7 +6955,7 @@ void CreateButton(
       0,
       name,
       OBJPROP_FONT,
-      "Arial"
+      "Segoe UI"
    );
 
    ObjectSetString(
