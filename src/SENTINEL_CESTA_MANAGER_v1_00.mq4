@@ -18,7 +18,7 @@
 #property indicator_chart_window
 #property indicator_buffers 0
 #property indicator_plots   0
-#property version "3.12"
+#property version "3.13"
 
 //====================================================================
 // INPUTS
@@ -243,6 +243,7 @@ struct WinningOrder
    double   result;
    double   openPrice;
    double   currentPrice;
+   datetime openTime;
 };
 
 //====================================================================
@@ -817,6 +818,9 @@ int CollectWinningOrders(
       wins[n].result=
          result;
 
+      wins[n].openTime=
+         OrderOpenTime();
+
       wins[n].openPrice=
          OrderOpenPrice();
 
@@ -840,14 +844,14 @@ void SortWinningOrders(
    {
       for(int j=i+1;j<n;j++)
       {
-         // Maior lote primeiro.
-         // Em caso de empate, maior resultado primeiro.
+         // Mais nova primeiro.
+         // Em caso de empate, maior ticket primeiro.
          bool shouldSwap=
-            (wins[j].lots>wins[i].lots);
+            (wins[j].openTime>wins[i].openTime);
 
          if(!shouldSwap &&
-            MathAbs(wins[j].lots-wins[i].lots)<0.0000000001 &&
-            wins[j].result>wins[i].result)
+            wins[j].openTime==wins[i].openTime &&
+            wins[j].ticket>wins[i].ticket)
          {
             shouldSwap=true;
          }
