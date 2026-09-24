@@ -6213,30 +6213,38 @@ bool ExecuteSell(
 
 int PanelObjectX(int relX,int objectWidth)
 {
-   int chartWidth=(int)ChartGetInteger(0,CHART_WIDTH_IN_PIXELS,0);
-
    if(InpPanelCorner==CORNER_RIGHT_UPPER ||
       InpPanelCorner==CORNER_RIGHT_LOWER)
       return MathMax(
          0,
-         chartWidth-InpPanelX-InpPanelWidth+relX
+         InpPanelX+
+         InpPanelWidth-
+         relX-
+         objectWidth
       );
 
-   return MathMax(0,InpPanelX+relX);
+   return MathMax(
+      0,
+      InpPanelX+relX
+   );
 }
 
 int PanelObjectY(int relY,int objectHeight)
 {
-   int chartHeight=(int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS,0);
-
    if(InpPanelCorner==CORNER_LEFT_LOWER ||
       InpPanelCorner==CORNER_RIGHT_LOWER)
       return MathMax(
          0,
-         chartHeight-InpPanelY-InpPanelHeight+relY
+         InpPanelY+
+         InpPanelHeight-
+         relY-
+         objectHeight
       );
 
-   return MathMax(0,InpPanelY+relY);
+   return MathMax(
+      0,
+      InpPanelY+relY
+   );
 }
 
 int EstimateLabelWidth(string text,int fontSize)
