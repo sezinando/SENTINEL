@@ -1724,21 +1724,31 @@ void UpdateSelectedReductionPanel()
    string t1=ticket1>0 ? IntegerToString(ticket1) : "--";
    string t2=ticket2>0 ? IntegerToString(ticket2) : "--";
 
-   if(ObjectFind(0,OBJ_EDIT_SELECTED_1)>=0)
-      ObjectSetString(0,OBJ_EDIT_SELECTED_1,OBJPROP_TEXT,t1);
+   UpdateLabel(
+      OBJ_LBL_SELECTED_1,
+      ticket1>0 ?
+      "T1 #"+t1+" "+SelectedTypeText(ticket1) :
+      "T1 --",
+      ticket1>0 ? UI_COLOR_TEXT_MAIN : UI_COLOR_TEXT_MUTED
+   );
 
-   if(ObjectFind(0,OBJ_EDIT_SELECTED_2)>=0)
-      ObjectSetString(0,OBJ_EDIT_SELECTED_2,OBJPROP_TEXT,t2);
+   UpdateLabel(
+      OBJ_LBL_SELECTED_2,
+      ticket2>0 ?
+      "T2 #"+t2+" "+SelectedTypeText(ticket2) :
+      "T2 --",
+      ticket2>0 ? UI_COLOR_TEXT_MAIN : UI_COLOR_TEXT_MUTED
+   );
 
    bool valid=BuildSelectedReductionPlan();
 
    if(!valid)
    {
-      UpdateLabel(OBJ_LBL_GROUP_TARGET,"TARGET      --",clrGold);
-      UpdateLabel(OBJ_LBL_GROUP_REFERENCE,"REFERENCE   --",clrSilver);
-      UpdateLabel(OBJ_LBL_GROUP_NET,"GROUP NET   --",clrSilver);
-      UpdateLabel(OBJ_LBL_GROUP_EXPOSURE,"EXPOSURE    --",clrSilver);
-      UpdateLabel(OBJ_LBL_GROUP_RESULT,"RESULT      --",clrSilver);
+      UpdateLabel(OBJ_LBL_GROUP_TARGET,"TARGET --",clrGold);
+      UpdateLabel(OBJ_LBL_GROUP_REFERENCE,"REFERENCE --",clrSilver);
+      UpdateLabel(OBJ_LBL_GROUP_NET,"NET --",clrSilver);
+      UpdateLabel(OBJ_LBL_GROUP_EXPOSURE,"EXP --",clrSilver);
+      UpdateLabel(OBJ_LBL_GROUP_RESULT,"RESULT --",clrSilver);
 
       if(ObjectFind(0,OBJ_BTN_REDUCE_SELECTED)>=0)
       {
@@ -1780,10 +1790,10 @@ void UpdateSelectedReductionPanel()
    double exposureAfter=buyAfter+sellAfter;
 
    string targetText=
-      "T"+IntegerToString(g_selectedTargetTicket)+
+      "TARGET #"+IntegerToString(g_selectedTargetTicket)+
       " "+SelectedTypeText(g_selectedTargetTicket)+
       " "+DoubleToString(g_selectedTargetLots,2)+
-      " R"+DoubleToString(g_selectedReduceLots,2);
+      " > "+DoubleToString(g_selectedReduceLots,2);
 
    UpdateLabel(
       OBJ_LBL_GROUP_TARGET,
@@ -1793,10 +1803,10 @@ void UpdateSelectedReductionPanel()
 
    string referenceText=
       g_selectedReferenceTicket>0 ?
-      "T"+IntegerToString(g_selectedReferenceTicket)+
+      "REFERENCE #"+IntegerToString(g_selectedReferenceTicket)+
       " "+SelectedTypeText(g_selectedReferenceTicket)+
       " "+DoubleToString(g_selectedReferenceLots,2) :
-      "--";
+      "REFERENCE --";
 
    UpdateLabel(
       OBJ_LBL_GROUP_REFERENCE,
@@ -7361,12 +7371,14 @@ void CreateEdit(
 #define UI_Y_FINANCE            115
 #define UI_Y_REDUCE             141
 #define UI_Y_SELECTED           172
-#define UI_Y_GROUP_TARGET       232
-#define UI_Y_GROUP_REFERENCE    247
-#define UI_Y_GROUP_NET          262
-#define UI_Y_GROUP_EXPOSURE     247
-#define UI_Y_GROUP_RESULT       232
-#define UI_Y_GROUP_BUTTON       284
+#define UI_Y_GROUP_TICKETS      188
+#define UI_Y_GROUP_AUTO         207
+#define UI_Y_GROUP_TARGET       228
+#define UI_Y_GROUP_REFERENCE    243
+#define UI_Y_GROUP_NET          259
+#define UI_Y_GROUP_EXPOSURE     259
+#define UI_Y_GROUP_RESULT       274
+#define UI_Y_GROUP_BUTTON       288
 #define UI_Y_TAKE               306
 #define UI_Y_STOP               328
 #define UI_Y_ENTRY_CONTEXT      376
@@ -7604,8 +7616,6 @@ void BuildInterface()
    // CURRENT GROUP / AUTO REDUCE
    //===============================================================
 
-   // Titulo ocupa uma linha propria. Os campos de selecao ficam
-   // abaixo para evitar qualquer colisao visual.
    CreateLabel(
       OBJ_LBL_GROUP_TITLE,
       "CURRENT GROUP",
@@ -7615,32 +7625,12 @@ void BuildInterface()
       UI_COLOR_TEXT_MAIN
    );
 
-   CreateEdit(
-      OBJ_EDIT_SELECTED_1,
-      "--",
-      72,
-      UI_Y_SELECTED+15,
-      58,
-      18
-   );
-   ObjectSetInteger(0,OBJ_EDIT_SELECTED_1,OBJPROP_READONLY,true);
-
-   CreateEdit(
-      OBJ_EDIT_SELECTED_2,
-      "--",
-      134,
-      UI_Y_SELECTED+15,
-      58,
-      18
-   );
-   ObjectSetInteger(0,OBJ_EDIT_SELECTED_2,OBJPROP_READONLY,true);
-
    CreateButton(
       OBJ_BTN_CLEAR_SELECTED,
       "LIMPAR",
-      196,
-      UI_Y_SELECTED+15,
-      46,
+      188,
+      UI_Y_SELECTED-2,
+      48,
       18,
       UI_COLOR_NEUTRAL
    );
@@ -7648,19 +7638,36 @@ void BuildInterface()
    CreateButton(
       OBJ_BTN_AUTO_REDUCE,
       "AUTO OFF",
-      246,
-      UI_Y_SELECTED+15,
-      44,
+      240,
+      UI_Y_SELECTED-2,
+      50,
       18,
       UI_COLOR_NEUTRAL
    );
 
-   // Parametros do Auto Reduce em uma segunda linha independente.
+   CreateLabel(
+      OBJ_LBL_SELECTED_1,
+      "T1 --",
+      10,
+      UI_Y_GROUP_TICKETS,
+      7,
+      UI_COLOR_TEXT_MUTED
+   );
+
+   CreateLabel(
+      OBJ_LBL_SELECTED_2,
+      "T2 --",
+      145,
+      UI_Y_GROUP_TICKETS,
+      7,
+      UI_COLOR_TEXT_MUTED
+   );
+
    CreateLabel(
       PREFIX+"LBL_AUTO_MIN",
       "MIN",
       10,
-      UI_Y_SELECTED+40,
+      UI_Y_GROUP_AUTO+3,
       7,
       UI_COLOR_TEXT_MUTED
    );
@@ -7669,7 +7676,7 @@ void BuildInterface()
       OBJ_EDIT_AUTO_MIN,
       DoubleToString(g_autoReduceMinProfit,2),
       30,
-      UI_Y_SELECTED+37,
+      UI_Y_GROUP_AUTO,
       48,
       18
    );
@@ -7678,7 +7685,7 @@ void BuildInterface()
       PREFIX+"LBL_AUTO_LOTS",
       "LOT",
       86,
-      UI_Y_SELECTED+40,
+      UI_Y_GROUP_AUTO+3,
       7,
       UI_COLOR_TEXT_MUTED
    );
@@ -7687,12 +7694,11 @@ void BuildInterface()
       OBJ_EDIT_AUTO_LOTS,
       DoubleToString(g_autoReduceLots,2),
       106,
-      UI_Y_SELECTED+37,
+      UI_Y_GROUP_AUTO,
       48,
       18
    );
 
-   // Informacoes dinamicas compactadas para caberem nas duas colunas.
    CreateLabel(
       OBJ_LBL_GROUP_TARGET,
       "TARGET --",
@@ -7700,15 +7706,6 @@ void BuildInterface()
       UI_Y_GROUP_TARGET,
       7,
       UI_COLOR_ACCENT
-   );
-
-   CreateLabel(
-      OBJ_LBL_GROUP_RESULT,
-      "RESULT --",
-      190,
-      UI_Y_GROUP_RESULT,
-      7,
-      UI_COLOR_TEXT_MUTED
    );
 
    CreateLabel(
@@ -7721,19 +7718,28 @@ void BuildInterface()
    );
 
    CreateLabel(
+      OBJ_LBL_GROUP_NET,
+      "NET --",
+      10,
+      UI_Y_GROUP_NET,
+      7,
+      UI_COLOR_TEXT_MUTED
+   );
+
+   CreateLabel(
       OBJ_LBL_GROUP_EXPOSURE,
-      "EXPOSURE --",
-      190,
+      "EXP --",
+      145,
       UI_Y_GROUP_EXPOSURE,
       7,
       UI_COLOR_TEXT_MUTED
    );
 
    CreateLabel(
-      OBJ_LBL_GROUP_NET,
-      "GROUP NET --",
+      OBJ_LBL_GROUP_RESULT,
+      "RESULT --",
       10,
-      UI_Y_GROUP_NET,
+      UI_Y_GROUP_RESULT,
       7,
       UI_COLOR_TEXT_MUTED
    );
@@ -7743,8 +7749,8 @@ void BuildInterface()
       "REDUCE GROUP",
       10,
       UI_Y_GROUP_BUTTON,
-      270,
-      20,
+      280,
+      18,
       UI_COLOR_NEUTRAL
    );
 
@@ -9108,8 +9114,6 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_BTN_REDUCE_SELL_WIN);
    DeleteObjectSafe(OBJ_BTN_REDUCE_SELL_LOSS);
    DeleteObjectSafe(OBJ_BTN_REDUCE_BOTH);
-   DeleteObjectSafe(OBJ_EDIT_SELECTED_1);
-   DeleteObjectSafe(OBJ_EDIT_SELECTED_2);
    DeleteObjectSafe(OBJ_LBL_SELECTED_1);
    DeleteObjectSafe(OBJ_LBL_SELECTED_2);
    DeleteObjectSafe(OBJ_LBL_SELECTED_CALC);
