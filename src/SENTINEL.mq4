@@ -6722,11 +6722,11 @@ void CreatePanel()
    );
 
    // Cards visuais compactos. Coordenadas relativas ao painel.
-   CreatePanelCard("SENTINEL_CARD_HEADER", 8, 8, 284, 44);
-   CreatePanelCard("SENTINEL_CARD_TRADING", 8, 56, 284, 116);
-   CreatePanelCard("SENTINEL_CARD_REDUCE", 8, 176, 284, 50);
-   CreatePanelCard("SENTINEL_CARD_GROUP", 8, 230, 284, 104);
-   CreatePanelCard("SENTINEL_CARD_RISK", 8, 338, 284, 54);
+   CreatePanelCard("SENTINEL_CARD_HEADER", 8, 8, 284, 42);
+   CreatePanelCard("SENTINEL_CARD_TRADING", 8, 54, 284, 110);
+   CreatePanelCard("SENTINEL_CARD_GROUP", 8, 168, 284, 138);
+   CreatePanelCard("SENTINEL_CARD_RISK", 8, 310, 284, 64);
+   CreatePanelCard("SENTINEL_CARD_ENTRY", 8, 374, 284, 40);
 
    ChartRedraw();
 }
@@ -7355,27 +7355,26 @@ void CreateEdit(
 #define UI_Y_TITLE              13
 #define UI_Y_SUBTITLE           28
 #define UI_Y_MAGIC              28
-#define UI_Y_SUMMARY            48
-#define UI_Y_LOTS               67
-#define UI_Y_TRADE              92
-#define UI_Y_FINANCE            122
-#define UI_Y_FINANCE2           138
-#define UI_Y_REDUCE             160
-#define UI_Y_SELECTED           184
-#define UI_Y_GROUP_TARGET       207
-#define UI_Y_GROUP_REFERENCE    221
-#define UI_Y_GROUP_NET          235
-#define UI_Y_GROUP_EXPOSURE     249
-#define UI_Y_GROUP_RESULT       263
-#define UI_Y_GROUP_BUTTON       281
-#define UI_Y_TAKE               298
-#define UI_Y_STOP               320
-#define UI_Y_ENTRY_CONTEXT      346
-#define UI_Y_ENTRY_SCORE        360
-#define UI_Y_ENTRY_SIGNAL       374
+#define UI_Y_SUMMARY            44
+#define UI_Y_LOTS               62
+#define UI_Y_TRADE              85
+#define UI_Y_FINANCE            115
+#define UI_Y_REDUCE             141
+#define UI_Y_SELECTED           176
+#define UI_Y_GROUP_TARGET       216
+#define UI_Y_GROUP_REFERENCE    229
+#define UI_Y_GROUP_NET          242
+#define UI_Y_GROUP_EXPOSURE     255
+#define UI_Y_GROUP_RESULT       268
+#define UI_Y_GROUP_BUTTON       284
+#define UI_Y_TAKE               306
+#define UI_Y_STOP               328
+#define UI_Y_ENTRY_CONTEXT      376
+#define UI_Y_ENTRY_SCORE        388
+#define UI_Y_ENTRY_SIGNAL       400
 #define UI_Y_RED                394
 #define UI_Y_STATUS             394
-#define UI_Y_TODAY              394
+#define UI_Y_TODAY              400
 
 //====================================================================
 // CONSTRUI INTERFACE
@@ -7833,7 +7832,7 @@ void BuildInterface()
       OBJ_BTN_CLOSE_ALL,
       "CLOSE ALL",
       10,
-      UI_Y_STOP+20,
+      348,
       270,
       20,
       InpSellColor
@@ -7889,7 +7888,7 @@ void BuildInterface()
       "SENTINEL ATIVO",
       10,
       UI_Y_STATUS,
-      8,
+      7,
       InpBuyColor
    );
 }
