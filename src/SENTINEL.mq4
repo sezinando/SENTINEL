@@ -1707,21 +1707,11 @@ void UpdateAutoReducePanel()
       );
    }
 
-   if(ObjectFind(0,OBJ_EDIT_AUTO_MIN)>=0)
-      ObjectSetString(
-         0,
-         OBJ_EDIT_AUTO_MIN,
-         OBJPROP_TEXT,
-         DoubleToString(g_autoReduceMinProfit,2)
-      );
-
-   if(ObjectFind(0,OBJ_EDIT_AUTO_LOTS)>=0)
-      ObjectSetString(
-         0,
-         OBJ_EDIT_AUTO_LOTS,
-         OBJPROP_TEXT,
-         DoubleToString(g_autoReduceLots,2)
-      );
+   // Os campos MIN e LOT sao editaveis pelo usuario.
+   // Nao reescrever o texto a cada tick: isso interrompe a edicao
+   // e devolve o valor persistido antes do CHARTEVENT_OBJECT_ENDEDIT.
+   // O texto inicial e carregado na criacao do objeto e, apos a edicao,
+   // ProcessEdit() normaliza e grava o novo valor.
 }
 
 void UpdateSelectedReductionPanel()
