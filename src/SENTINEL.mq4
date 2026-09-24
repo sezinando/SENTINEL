@@ -158,6 +158,10 @@ input int      InpMagicNumber       = 1001;
 input string   InpOrderComment      = "SENTINEL";
 input double   InpDefaultLots       = 0.02;
 
+input bool     InpAutoReduceDefault   = false;
+input double   InpAutoReduceMinProfit = 20.0;
+input double   InpAutoReduceLots      = 0.10;
+
 input double   InpTargetPoints     = 32000.0;
 input double   InpStopPoints       = 32000.0;
 input double   InpPointsStep        = 5.0;
@@ -1200,7 +1204,7 @@ input ENUM_BASE_CORNER InpPanelCorner = CORNER_LEFT_UPPER;
 input int InpPanelX      = 4;
 input int InpPanelY      = 4;
 input int InpPanelWidth  = 300;
-input int InpPanelHeight = 512;
+input int InpPanelHeight = 530;
 
 #define UI_COLOR_CARD          C'30,30,30'
 #define UI_COLOR_CARD_BORDER   C'50,50,50'
@@ -1313,6 +1317,9 @@ input color InpStopColor      = clrRed;
 #define OBJ_LBL_SELECTED_EXPOSURE PREFIX+"LBL_SELECTED_EXPOSURE"
 #define OBJ_BTN_REDUCE_SELECTED PREFIX+"BTN_REDUCE_SELECTED"
 #define OBJ_BTN_CLEAR_SELECTED PREFIX+"BTN_CLEAR_SELECTED"
+#define OBJ_BTN_AUTO_REDUCE      PREFIX+"BTN_AUTO_REDUCE"
+#define OBJ_EDIT_AUTO_MIN        PREFIX+"EDIT_AUTO_MIN"
+#define OBJ_EDIT_AUTO_LOTS       PREFIX+"EDIT_AUTO_LOTS"
 #define OBJ_LBL_GROUP_TITLE    PREFIX+"LBL_GROUP_TITLE"
 #define OBJ_LBL_GROUP_TARGET   PREFIX+"LBL_GROUP_TARGET"
 #define OBJ_LBL_GROUP_REFERENCE PREFIX+"LBL_GROUP_REFERENCE"
@@ -1420,6 +1427,12 @@ double g_selectedReferenceLots=0.0;
 double g_selectedTargetResult=0.0;
 double g_selectedReferenceResult=0.0;
 double g_selectedReduceLots=0.0;
+
+bool   g_autoReduceEnabled=false;
+double g_autoReduceMinProfit=20.0;
+double g_autoReduceLots=0.10;
+bool   g_autoReduceExecuted=false;
+string g_autoReduceGroupSignature="";
 
 string SelectedGlobalPrefix()
 {
@@ -1673,8 +1686,48 @@ string SelectedTypeText(int ticket)
    return type==OP_BUY ? "BUY" : "SELL";
 }
 
+void UpdateAutoReducePanel()
+{
+   if(ObjectFind(0,OBJ_BTN_AUTO_REDUCE)>=0)
+   {
+      ObjectSetString(
+         0,
+         OBJ_BTN_AUTO_REDUCE,
+         OBJPROP_TEXT,
+         g_autoReduceEnabled ? "AUTO ON" : "AUTO OFF"
+      );
+
+      ObjectSetInteger(
+         0,
+         OBJ_BTN_AUTO_REDUCE,
+         OBJPROP_BGCOLOR,
+         g_autoReduceEnabled ?
+         InpProfitColor :
+         UI_COLOR_NEUTRAL
+      );
+   }
+
+   if(ObjectFind(0,OBJ_EDIT_AUTO_MIN)>=0)
+      ObjectSetString(
+         0,
+         OBJ_EDIT_AUTO_MIN,
+         OBJPROP_TEXT,
+         DoubleToString(g_autoReduceMinProfit,2)
+      );
+
+   if(ObjectFind(0,OBJ_EDIT_AUTO_LOTS)>=0)
+      ObjectSetString(
+         0,
+         OBJ_EDIT_AUTO_LOTS,
+         OBJPROP_TEXT,
+         DoubleToString(g_autoReduceLots,2)
+      );
+}
+
 void UpdateSelectedReductionPanel()
 {
+   UpdateAutoReducePanel();
+
    int ticket1=GetSelectedTicket(1);
    int ticket2=GetSelectedTicket(2);
 
@@ -1881,6 +1934,101 @@ bool ExecuteSelectedReduction()
    ClearSelectedTickets();
 
    return true;
+}
+
+string GetAutoReduceGroupSignature()
+{
+   int ticket1=GetSelectedTicket(1);
+   int ticket2=GetSelectedTicket(2);
+
+   if(ticket1<=0)
+      return "";
+
+   return IntegerToString(ticket1)+
+          ":"+
+          IntegerToString(ticket2);
+}
+
+void EvaluateAutoReduce()
+{
+   if(!g_autoReduceEnabled ||
+      g_processing)
+      return;
+
+   if(GetSelectedTicket(1)<=0)
+   {
+      g_autoReduceExecuted=false;
+      g_autoReduceGroupSignature="";
+      return;
+   }
+
+   string signature=GetAutoReduceGroupSignature();
+
+   if(signature=="")
+      return;
+
+   if(signature!=g_autoReduceGroupSignature)
+   {
+      g_autoReduceGroupSignature=signature;
+      g_autoReduceExecuted=false;
+   }
+
+   if(g_autoReduceExecuted)
+      return;
+
+   if(!BuildSelectedReductionPlan())
+      return;
+
+   double groupResult=
+      g_selectedTargetResult+
+      g_selectedReferenceResult;
+
+   if(groupResult < g_autoReduceMinProfit)
+      return;
+
+   double autoLots=
+      NormalizeLots(
+         MathMin(
+            g_autoReduceLots,
+            g_selectedTargetLots
+         )
+      );
+
+   if(autoLots<=0.0)
+      return;
+
+   double manualLots=g_selectedLots;
+   g_selectedLots=autoLots;
+
+   g_processing=true;
+
+   SetStatus(
+      "AUTO REDUCE T"+
+      IntegerToString(g_selectedTargetTicket)+
+      " "+DoubleToString(autoLots,2),
+      InpProfitColor
+   );
+
+   bool ok=ExecuteSelectedReduction();
+
+   g_processing=false;
+   g_selectedLots=manualLots;
+
+   if(ok)
+   {
+      g_autoReduceExecuted=true;
+      SetStatus(
+         "AUTO REDUCE EXECUTADO",
+         InpProfitColor
+      );
+   }
+   else
+   {
+      SetStatus(
+         "AUTO REDUCE FALHOU",
+         InpStopColor
+      );
+   }
 }
 
 
@@ -2176,6 +2324,33 @@ string SelectedLotsGlobalName()
           IntegerToString(InpMagicNumber);
 }
 
+string AutoReduceEnabledGlobalName()
+{
+   return PREFIX+
+          "AUTO_REDUCE_"+
+          Symbol()+
+          "_"+
+          IntegerToString(InpMagicNumber);
+}
+
+string AutoReduceMinProfitGlobalName()
+{
+   return PREFIX+
+          "AUTO_REDUCE_MIN_"+
+          Symbol()+
+          "_"+
+          IntegerToString(InpMagicNumber);
+}
+
+string AutoReduceLotsGlobalName()
+{
+   return PREFIX+
+          "AUTO_REDUCE_LOTS_"+
+          Symbol()+
+          "_"+
+          IntegerToString(InpMagicNumber);
+}
+
 //====================================================================
 // PERSISTENCIA DOS PARAMETROS DO PAINEL
 //
@@ -2212,6 +2387,21 @@ void SavePanelSettingsToGlobals()
    GlobalVariableSet(
       StopPointsGlobalName(),
       g_stopPoints
+   );
+
+   GlobalVariableSet(
+      AutoReduceEnabledGlobalName(),
+      g_autoReduceEnabled ? 1.0 : 0.0
+   );
+
+   GlobalVariableSet(
+      AutoReduceMinProfitGlobalName(),
+      g_autoReduceMinProfit
+   );
+
+   GlobalVariableSet(
+      AutoReduceLotsGlobalName(),
+      g_autoReduceLots
    );
 }
 
@@ -2256,6 +2446,30 @@ void LoadPanelSettingsFromGlobals()
    g_selectedLots=lots;
    g_targetPoints=target;
    g_stopPoints=stop;
+
+   g_autoReduceEnabled=InpAutoReduceDefault;
+   g_autoReduceMinProfit=MathMax(0.0,InpAutoReduceMinProfit);
+   g_autoReduceLots=NormalizeLots(InpAutoReduceLots);
+
+   string autoGV=AutoReduceEnabledGlobalName();
+   string minGV=AutoReduceMinProfitGlobalName();
+   string lotsGV=AutoReduceLotsGlobalName();
+
+   if(GlobalVariableCheck(autoGV))
+      g_autoReduceEnabled=(GlobalVariableGet(autoGV)>0.5);
+
+   if(GlobalVariableCheck(minGV))
+      g_autoReduceMinProfit=MathMax(0.0,GlobalVariableGet(minGV));
+
+   if(GlobalVariableCheck(lotsGV))
+   {
+      double storedLots=NormalizeLots(GlobalVariableGet(lotsGV));
+      if(storedLots>0.0)
+         g_autoReduceLots=storedLots;
+   }
+
+   if(g_autoReduceLots<=0.0)
+      g_autoReduceLots=MinLot();
 }
 
 void SaveLevelPointsToGlobals()
@@ -6521,8 +6735,8 @@ void CreatePanel()
    CreatePanelCard("SENTINEL_CARD_HEADER", 8, 8, 284, 72);
    CreatePanelCard("SENTINEL_CARD_TRADING", 8, 82, 284, 112);
    CreatePanelCard("SENTINEL_CARD_RISK", 8, 198, 284, 102);
-   CreatePanelCard("SENTINEL_CARD_GROUP", 8, 304, 284, 150);
-   CreatePanelCard("SENTINEL_CARD_FOOTER", 8, 458, 284, 52);
+   CreatePanelCard("SENTINEL_CARD_GROUP", 8, 304, 284, 172);
+   CreatePanelCard("SENTINEL_CARD_FOOTER", 8, 478, 284, 44);
 
    ChartRedraw();
 }
@@ -7169,10 +7383,11 @@ void CreateEdit(
 #define UI_Y_GROUP_EXPOSURE     398
 #define UI_Y_GROUP_RESULT       414
 #define UI_Y_GROUP_BUTTON       430
-#define UI_Y_RED                464
-#define UI_Y_STATUS             464
-#define UI_Y_REALIZED           484
-#define UI_Y_TODAY              499
+#define UI_Y_GROUP_REDUCE       454
+#define UI_Y_RED                482
+#define UI_Y_STATUS             482
+#define UI_Y_REALIZED           498
+#define UI_Y_TODAY              513
 
 //====================================================================
 // CONSTRUI INTERFACE
@@ -7568,6 +7783,52 @@ void BuildInterface()
       UI_COLOR_NEUTRAL
    );
 
+   CreateButton(
+      OBJ_BTN_AUTO_REDUCE,
+      "AUTO OFF",
+      10,
+      UI_Y_GROUP_BUTTON,
+      65,
+      20,
+      UI_COLOR_NEUTRAL
+   );
+
+   CreateLabel(
+      PREFIX+"LBL_AUTO_MIN",
+      "MIN",
+      80,
+      UI_Y_GROUP_BUTTON+4,
+      7,
+      UI_COLOR_TEXT_MUTED
+   );
+
+   CreateEdit(
+      OBJ_EDIT_AUTO_MIN,
+      DoubleToString(g_autoReduceMinProfit,2),
+      101,
+      UI_Y_GROUP_BUTTON,
+      58,
+      20
+   );
+
+   CreateLabel(
+      PREFIX+"LBL_AUTO_LOTS",
+      "LOT",
+      166,
+      UI_Y_GROUP_BUTTON+4,
+      7,
+      UI_COLOR_TEXT_MUTED
+   );
+
+   CreateEdit(
+      OBJ_EDIT_AUTO_LOTS,
+      DoubleToString(g_autoReduceLots,2),
+      187,
+      UI_Y_GROUP_BUTTON,
+      48,
+      20
+   );
+
    CreateLabel(
       OBJ_LBL_GROUP_TARGET,
       "TARGET      --",
@@ -7617,7 +7878,7 @@ void BuildInterface()
       OBJ_BTN_REDUCE_SELECTED,
       "REDUCE GROUP",
       10,
-      UI_Y_GROUP_BUTTON,
+      UI_Y_GROUP_REDUCE,
       270,
       24,
       UI_COLOR_NEUTRAL
@@ -8203,6 +8464,74 @@ void ProcessEdit(
    }
 
    //-----------------------------------------------------------------
+   // AUTO REDUCE — MIN PROFIT
+   //-----------------------------------------------------------------
+
+   if(name==OBJ_EDIT_AUTO_MIN)
+   {
+      double value=StrToDouble(
+         ObjectGetString(0,OBJ_EDIT_AUTO_MIN,OBJPROP_TEXT)
+      );
+
+      if(value<0.0)
+         value=0.0;
+
+      g_autoReduceMinProfit=value;
+
+      ObjectSetString(
+         0,
+         OBJ_EDIT_AUTO_MIN,
+         OBJPROP_TEXT,
+         DoubleToString(g_autoReduceMinProfit,2)
+      );
+
+      SavePanelSettingsToGlobals();
+
+      SetStatus(
+         "AUTO MIN "+DoubleToString(g_autoReduceMinProfit,2),
+         UI_COLOR_ACCENT
+      );
+
+      ChartRedraw();
+      return;
+   }
+
+   //-----------------------------------------------------------------
+   // AUTO REDUCE — LOTES
+   //-----------------------------------------------------------------
+
+   if(name==OBJ_EDIT_AUTO_LOTS)
+   {
+      double value=StrToDouble(
+         ObjectGetString(0,OBJ_EDIT_AUTO_LOTS,OBJPROP_TEXT)
+      );
+
+      value=NormalizeLots(value);
+
+      if(value<=0.0)
+         value=MinLot();
+
+      g_autoReduceLots=value;
+
+      ObjectSetString(
+         0,
+         OBJ_EDIT_AUTO_LOTS,
+         OBJPROP_TEXT,
+         DoubleToString(g_autoReduceLots,2)
+      );
+
+      SavePanelSettingsToGlobals();
+
+      SetStatus(
+         "AUTO LOT "+DoubleToString(g_autoReduceLots,2),
+         UI_COLOR_ACCENT
+      );
+
+      ChartRedraw();
+      return;
+   }
+
+   //-----------------------------------------------------------------
    // TAKE EM PONTOS
    //-----------------------------------------------------------------
 
@@ -8446,6 +8775,29 @@ void ProcessButton(
             OBJPROP_TEXT
          )
       );
+
+   //-----------------------------------------------------------------
+   // AUTO REDUCE
+   //-----------------------------------------------------------------
+
+   if(name==OBJ_BTN_AUTO_REDUCE)
+   {
+      g_autoReduceEnabled=!g_autoReduceEnabled;
+      g_autoReduceExecuted=false;
+      g_autoReduceGroupSignature="";
+
+      SavePanelSettingsToGlobals();
+
+      SetStatus(
+         g_autoReduceEnabled ?
+         "AUTO REDUCE ON" :
+         "AUTO REDUCE OFF",
+         g_autoReduceEnabled ? InpProfitColor : UI_COLOR_TEXT_MUTED
+      );
+
+      UpdateSelectedReductionPanel();
+      return;
+   }
 
    //-----------------------------------------------------------------
    // REDUCE SELECIONADO
@@ -8798,6 +9150,11 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_LBL_SELECTED_EXPOSURE);
    DeleteObjectSafe(OBJ_BTN_REDUCE_SELECTED);
    DeleteObjectSafe(OBJ_BTN_CLEAR_SELECTED);
+   DeleteObjectSafe(OBJ_BTN_AUTO_REDUCE);
+   DeleteObjectSafe(OBJ_EDIT_AUTO_MIN);
+   DeleteObjectSafe(OBJ_EDIT_AUTO_LOTS);
+   DeleteObjectSafe(PREFIX+"LBL_AUTO_MIN");
+   DeleteObjectSafe(PREFIX+"LBL_AUTO_LOTS");
    DeleteObjectSafe(OBJ_LBL_GROUP_TITLE);
    DeleteObjectSafe(OBJ_LBL_GROUP_TARGET);
    DeleteObjectSafe(OBJ_LBL_GROUP_REFERENCE);
@@ -8883,7 +9240,10 @@ int OnInit()
    // tambem passam a existir nas Global Variables.
    if(!GlobalVariableCheck(SelectedLotsGlobalName()) ||
       !GlobalVariableCheck(TargetPointsGlobalName()) ||
-      !GlobalVariableCheck(StopPointsGlobalName()))
+      !GlobalVariableCheck(StopPointsGlobalName()) ||
+      !GlobalVariableCheck(AutoReduceEnabledGlobalName()) ||
+      !GlobalVariableCheck(AutoReduceMinProfitGlobalName()) ||
+      !GlobalVariableCheck(AutoReduceLotsGlobalName()))
    {
       SavePanelSettingsToGlobals();
    }
@@ -8981,6 +9341,7 @@ int OnInit()
    MakeButtonNonSelectable(OBJ_BTN_REDUCE_BOTH);
    MakeButtonNonSelectable(OBJ_BTN_CLEAR_SELECTED);
    MakeButtonNonSelectable(OBJ_BTN_REDUCE_SELECTED);
+   MakeButtonNonSelectable(OBJ_BTN_AUTO_REDUCE);
    MakeButtonNonSelectable(OBJ_BTN_CLOSE_ALL);
    MakeButtonNonSelectable(OBJ_BTN_RED);
 
@@ -9065,6 +9426,8 @@ void OnTick()
    UpdateInterface();
 
    UpdateTradingObjects();
+
+   EvaluateAutoReduce();
 
    CheckAutoClose();
 
