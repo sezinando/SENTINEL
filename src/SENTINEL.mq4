@@ -6239,6 +6239,30 @@ int PanelObjectY(int localY,int objectHeight)
    return MathMax(0,originY+localY);
 }
 
+int PanelLabelX(int localX)
+{
+   if(InpPanelCorner==CORNER_RIGHT_UPPER ||
+      InpPanelCorner==CORNER_RIGHT_LOWER)
+      return MathMax(
+         0,
+         InpPanelX+InpPanelWidth-localX
+      );
+
+   return MathMax(0,InpPanelX+localX);
+}
+
+int PanelLabelY(int localY)
+{
+   if(InpPanelCorner==CORNER_LEFT_LOWER ||
+      InpPanelCorner==CORNER_RIGHT_LOWER)
+      return MathMax(
+         0,
+         InpPanelY+InpPanelHeight-localY
+      );
+
+   return MathMax(0,InpPanelY+localY);
+}
+
 int EstimateLabelWidth(string text,int fontSize)
 {
    int n=StringLen(text);
@@ -6423,15 +6447,22 @@ void CreateLabel(
    ObjectSetInteger(
       0,
       name,
+      OBJPROP_ANCHOR,
+      ANCHOR_LEFT_UPPER
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
       OBJPROP_XDISTANCE,
-      PanelObjectX(x,EstimateLabelWidth(text,size))
+      PanelLabelX(x)
    );
 
    ObjectSetInteger(
       0,
       name,
       OBJPROP_YDISTANCE,
-      PanelObjectY(y,size+4)
+      PanelLabelY(y)
    );
 
    ObjectSetInteger(
