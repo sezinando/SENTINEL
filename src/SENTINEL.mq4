@@ -7367,6 +7367,10 @@ void BuildInterface()
 {
    CreatePanel();
 
+   DeleteObjectSafe(OBJ_LBL_ENTRY_CONTEXT);
+   DeleteObjectSafe(OBJ_LBL_ENTRY_SCORE);
+   DeleteObjectSafe(OBJ_LBL_ENTRY_SIGNAL);
+
    int curY = 8;
    int margin = 10;
    int contentW = InpPanelWidth - (margin * 2);
@@ -7483,20 +7487,8 @@ void BuildInterface()
    CreatePanelSeparator(PREFIX+"SEP_6",curY);
    curY += 8;
 
-   // ENTRY ENGINE
-   CreateLabel(OBJ_LBL_ENTRY_CONTEXT,"CONTEXTO: --",margin,curY,7,UI_COLOR_TEXT_MUTED);
-   curY += 13;
-   CreateLabel(OBJ_LBL_ENTRY_SCORE,"NOVA: -- | AGUARDAR",margin,curY,7,UI_COLOR_TEXT_MUTED);
-   curY += 13;
-   CreateLabel(OBJ_LBL_ENTRY_SIGNAL,"AGUARDAR",margin,curY,8,UI_COLOR_ACCENT);
-
-   curY += 21;
-   CreateButton(OBJ_BTN_RED,"RED",InpPanelWidth-60,curY-18,50,20,clrDarkGoldenrod);
-   CreateLabel(OBJ_LBL_STATUS,"SENTINEL ATIVO",margin,curY,7,InpBuyColor);
-
-   //===============================================================
-   // EXPOSICAO no rodape.
-   curY += 18;
+   // EXPOSICAO / STATUS
+   curY += 8;
 
    CreateLabel(
       OBJ_LBL_EXPOSURE,
