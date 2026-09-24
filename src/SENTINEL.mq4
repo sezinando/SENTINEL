@@ -1587,20 +1587,11 @@ bool BuildSelectedReductionPlan()
          result2))
          return false;
 
-      // Uma WIN e uma LOSS: a LOSS e o alvo.
+      // Uma WIN e uma LOSS: a WIN e o alvo.
+      // A ordem vencedora fornece a reserva de lucro para a reducao;
+      // a LOSS permanece como referencia e nao tem prejuizo realizado.
       if(result1>0.00000001 &&
          result2<-0.00000001)
-      {
-         g_selectedTargetTicket=ticket2;
-         g_selectedReferenceTicket=ticket1;
-         g_selectedTargetLots=lots2;
-         g_selectedReferenceLots=lots1;
-         g_selectedTargetResult=result2;
-         g_selectedReferenceResult=result1;
-      }
-      else
-      if(result2>0.00000001 &&
-         result1<-0.00000001)
       {
          g_selectedTargetTicket=ticket1;
          g_selectedReferenceTicket=ticket2;
@@ -1608,6 +1599,17 @@ bool BuildSelectedReductionPlan()
          g_selectedReferenceLots=lots2;
          g_selectedTargetResult=result1;
          g_selectedReferenceResult=result2;
+      }
+      else
+      if(result2>0.00000001 &&
+         result1<-0.00000001)
+      {
+         g_selectedTargetTicket=ticket2;
+         g_selectedReferenceTicket=ticket1;
+         g_selectedTargetLots=lots2;
+         g_selectedReferenceLots=lots1;
+         g_selectedTargetResult=result2;
+         g_selectedReferenceResult=result1;
       }
       // Duas WIN: reduz a menor ordem; a maior permanece aberta.
       else
