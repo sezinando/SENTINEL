@@ -9622,7 +9622,9 @@ void OnChartEvent(
    {
       if(sparam==OBJ_EDIT_LOTS ||
          sparam==OBJ_EDIT_TARGET ||
-         sparam==OBJ_EDIT_STOP)
+         sparam==OBJ_EDIT_STOP ||
+         sparam==OBJ_EDIT_AUTO_MIN ||
+         sparam==OBJ_EDIT_AUTO_LOTS)
       {
          ProcessEdit(
             sparam
