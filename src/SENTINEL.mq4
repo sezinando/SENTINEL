@@ -1200,7 +1200,7 @@ input ENUM_BASE_CORNER InpPanelCorner = CORNER_LEFT_UPPER;
 input int InpPanelX      = 4;
 input int InpPanelY      = 4;
 input int InpPanelWidth  = 300;
-input int InpPanelHeight = 520;
+input int InpPanelHeight = 512;
 
 #define UI_COLOR_CARD          C'30,30,30'
 #define UI_COLOR_CARD_BORDER   C'50,50,50'
@@ -6446,7 +6446,7 @@ void CreatePanel()
       0,
       OBJ_PANEL,
       OBJPROP_BGCOLOR,
-      clrBlack
+      InpPanelColor
    );
 
    ObjectSetInteger(
@@ -6519,9 +6519,10 @@ void CreatePanel()
 
    // Cards visuais. Coordenadas relativas ao painel.
    CreatePanelCard("SENTINEL_CARD_HEADER", 8, 8, 284, 72);
-   CreatePanelCard("SENTINEL_CARD_TRADING", 8, 82, 284, 100);
-   CreatePanelCard("SENTINEL_CARD_RISK", 8, 186, 284, 112);
-   CreatePanelCard("SENTINEL_CARD_GROUP", 8, 302, 284, 210);
+   CreatePanelCard("SENTINEL_CARD_TRADING", 8, 82, 284, 112);
+   CreatePanelCard("SENTINEL_CARD_RISK", 8, 198, 284, 102);
+   CreatePanelCard("SENTINEL_CARD_GROUP", 8, 304, 284, 150);
+   CreatePanelCard("SENTINEL_CARD_FOOTER", 8, 458, 284, 52);
 
    ChartRedraw();
 }
@@ -7147,31 +7148,31 @@ void CreateEdit(
 // Coordenadas relativas ao canto superior do painel.
 #define UI_Y_TITLE              13
 #define UI_Y_SUBTITLE           34
-#define UI_Y_SUMMARY            54
-#define UI_Y_OPEN               70
+#define UI_Y_SUMMARY            52
+#define UI_Y_OPEN               67
 #define UI_Y_LOTS_LABEL         90
 #define UI_Y_LOTS               84
 #define UI_Y_TRADE              108
 #define UI_Y_REDUCE_BOTH        138
-#define UI_Y_WIN_LOSS            167
-#define UI_Y_TAKE_LABEL          199
-#define UI_Y_TAKE                195
-#define UI_Y_STOP_LABEL          226
-#define UI_Y_STOP                222
-#define UI_Y_CLOSE_ALL           255
-#define UI_Y_GROUP_TITLE         286
-#define UI_Y_GROUP_TICKETS       307
-#define UI_Y_GROUP_TICKET_EDIT   303
-#define UI_Y_GROUP_TARGET        329
-#define UI_Y_GROUP_REFERENCE     345
-#define UI_Y_GROUP_NET           361
-#define UI_Y_GROUP_EXPOSURE      377
-#define UI_Y_GROUP_RESULT        393
-#define UI_Y_GROUP_BUTTON        411
-#define UI_Y_RED                  440
-#define UI_Y_STATUS               444
-#define UI_Y_REALIZED             468
-#define UI_Y_TODAY                490
+#define UI_Y_WIN_LOSS           167
+#define UI_Y_TAKE_LABEL         199
+#define UI_Y_TAKE               195
+#define UI_Y_STOP_LABEL         226
+#define UI_Y_STOP               222
+#define UI_Y_CLOSE_ALL          255
+#define UI_Y_GROUP_TITLE        308
+#define UI_Y_GROUP_TICKETS      329
+#define UI_Y_GROUP_TICKET_EDIT  326
+#define UI_Y_GROUP_TARGET       350
+#define UI_Y_GROUP_REFERENCE    366
+#define UI_Y_GROUP_NET          382
+#define UI_Y_GROUP_EXPOSURE     398
+#define UI_Y_GROUP_RESULT       414
+#define UI_Y_GROUP_BUTTON       430
+#define UI_Y_RED                464
+#define UI_Y_STATUS             464
+#define UI_Y_REALIZED           484
+#define UI_Y_TODAY              499
 
 //====================================================================
 // CONSTRUI INTERFACE
@@ -7638,7 +7639,7 @@ void BuildInterface()
    CreateLabel(
       OBJ_LBL_STATUS,
       "SENTINEL ATIVO",
-      186,
+      82,
       UI_Y_STATUS,
       8,
       InpBuyColor
