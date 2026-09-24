@@ -1204,7 +1204,7 @@ input ENUM_BASE_CORNER InpPanelCorner = CORNER_LEFT_UPPER;
 input int InpPanelX      = 4;
 input int InpPanelY      = 4;
 input int InpPanelWidth  = 300;
-input int InpPanelHeight = 530;
+input int InpPanelHeight = 420;
 
 #define UI_COLOR_CARD          C'30,30,30'
 #define UI_COLOR_CARD_BORDER   C'50,50,50'
