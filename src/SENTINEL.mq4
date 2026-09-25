@@ -1323,6 +1323,8 @@ input color InpStopColor      = clrRed;
 #define OBJ_LBL_GROUP_EXPOSURE PREFIX+"LBL_GROUP_EXPOSURE"
 #define OBJ_LBL_GROUP_RESULT   PREFIX+"LBL_GROUP_RESULT"
 #define OBJ_LBL_GROUP_CALC     PREFIX+"LBL_GROUP_CALC"
+#define OBJ_LBL_GROUP_WIN      PREFIX+"LBL_GROUP_WIN"
+#define OBJ_LBL_GROUP_NEED     PREFIX+"LBL_GROUP_NEED"
 
 #define OBJ_LBL_STATUS         PREFIX+"LBL_STATUS"
 #define OBJ_LBL_CHART_PROFIT   PREFIX+"LBL_CHART_PROFIT"
@@ -1810,12 +1812,14 @@ void UpdateSelectedReductionPanel()
 
    if(!valid)
    {
-      UpdateLabel(OBJ_LBL_GROUP_TARGET,"TARGET --",clrGold);
-      UpdateLabel(OBJ_LBL_GROUP_REFERENCE,"REFERENCE --",clrSilver);
-      UpdateLabel(OBJ_LBL_GROUP_NET,"NET --",clrSilver);
-      UpdateLabel(OBJ_LBL_GROUP_EXPOSURE,"EXP --",clrSilver);
-      UpdateLabel(OBJ_LBL_GROUP_RESULT,"RESULT --",clrSilver);
-      UpdateLabel(OBJ_LBL_GROUP_CALC,"CALC --",clrSilver);
+      UpdateLabel(OBJ_LBL_GROUP_TARGET,"LOSS --",InpStopColor);
+      UpdateLabel(OBJ_LBL_GROUP_REFERENCE,"WIN --",InpProfitColor);
+      UpdateLabel(OBJ_LBL_GROUP_NET,"NET --",UI_COLOR_TEXT_MAIN);
+      UpdateLabel(OBJ_LBL_GROUP_EXPOSURE,"EXP --",UI_COLOR_TEXT_MUTED);
+      UpdateLabel(OBJ_LBL_GROUP_RESULT,"RESULT --",UI_COLOR_TEXT_MAIN);
+      UpdateLabel(OBJ_LBL_GROUP_WIN,"WIN --",InpProfitColor);
+      UpdateLabel(OBJ_LBL_GROUP_NEED,"NEED --",InpStopColor);
+      UpdateLabel(OBJ_LBL_GROUP_CALC,"LOT --",UI_COLOR_TEXT_MUTED);
 
       if(ObjectFind(0,OBJ_BTN_REDUCE_SELECTED)>=0)
       {
@@ -1917,20 +1921,29 @@ void UpdateSelectedReductionPanel()
       );
 
       double winCurrentMoney=g_selectedReferenceResult;
-      string calcText=
-         "WIN "+FormatMoney(winCurrentMoney)+
-         " | NEED "+FormatMoney(g_selectedWinRequiredMoney)+
-         " | LOT "+
-         DoubleToString(g_selectedWinCalculatedLots,3)+
-         " > "+
-         DoubleToString(g_selectedWinExecutionLots,2);
+
+      // Economia da reducao em duas colunas: WIN e NEED.
+      // O lote calculado fica isolado na linha seguinte para nao
+      // comprimir a leitura no painel estreito.
+      UpdateLabel(
+         OBJ_LBL_GROUP_WIN,
+         "WIN "+FormatMoney(winCurrentMoney),
+         InpProfitColor
+      );
+
+      UpdateLabel(
+         OBJ_LBL_GROUP_NEED,
+         "NEED "+FormatMoney(g_selectedWinRequiredMoney),
+         g_selectedEconomicReady ? InpProfitColor : InpStopColor
+      );
 
       UpdateLabel(
          OBJ_LBL_GROUP_CALC,
-         calcText,
-         g_selectedEconomicReady ?
-         InpProfitColor :
-         InpStopColor
+         "LOT "+
+         DoubleToString(g_selectedWinCalculatedLots,3)+
+         " > "+
+         DoubleToString(g_selectedWinExecutionLots,2),
+         g_selectedEconomicReady ? InpProfitColor : UI_COLOR_TEXT_MUTED
       );
    }
    else
@@ -1971,9 +1984,21 @@ void UpdateSelectedReductionPanel()
       );
 
       UpdateLabel(
-         OBJ_LBL_GROUP_CALC,
-         "CALC LEGACY",
+         OBJ_LBL_GROUP_WIN,
+         "WIN "+FormatMoney(MathMax(0.0,g_selectedReferenceResult)),
+         g_selectedReferenceResult>=0.0 ? InpProfitColor : InpStopColor
+      );
+
+      UpdateLabel(
+         OBJ_LBL_GROUP_NEED,
+         "NEED --",
          UI_COLOR_TEXT_MUTED
+      );
+
+      UpdateLabel(
+         OBJ_LBL_GROUP_CALC,
+         "LOT "+DoubleToString(g_selectedReduceLots,2),
+         UI_COLOR_TEXT_MAIN
       );
    }
 
@@ -7733,18 +7758,22 @@ void BuildInterface()
    CreateEdit(OBJ_EDIT_AUTO_LOTS,DoubleToString(g_autoReduceLots,2),margin+98,217,48,18);
 
    // LOSS / WIN
-   CreateLabel(OBJ_LBL_GROUP_TARGET,"LOSS --",margin,242,8,UI_COLOR_TEXT_MUTED);
-   CreateLabel(OBJ_LBL_GROUP_REFERENCE,"WIN --",margin,258,8,UI_COLOR_TEXT_MUTED);
+   // LOSS / WIN: cor representa estado, nao simplesmente o lado da ordem.
+   CreateLabel(OBJ_LBL_GROUP_TARGET,"LOSS --",margin,242,8,InpStopColor);
+   CreateLabel(OBJ_LBL_GROUP_REFERENCE,"WIN --",margin,258,8,InpProfitColor);
 
    // NET / EXPOSICAO
-   CreateLabel(OBJ_LBL_GROUP_NET,"NET --",margin,276,8,UI_COLOR_TEXT_MUTED);
+   CreateLabel(OBJ_LBL_GROUP_NET,"NET --",margin,276,8,UI_COLOR_TEXT_MAIN);
    CreateLabel(OBJ_LBL_GROUP_EXPOSURE,"EXP --",margin+145,276,8,UI_COLOR_TEXT_MUTED);
 
-   // Resultado
-   CreateLabel(OBJ_LBL_GROUP_RESULT,"RESULT --",margin,293,8,UI_COLOR_TEXT_MUTED);
-   CreateLabel(OBJ_LBL_GROUP_CALC,"CALC --",margin,309,7,UI_COLOR_TEXT_MUTED);
+   // Resultado e economia da reducao.
+   CreateLabel(OBJ_LBL_GROUP_RESULT,"RESULT --",margin,293,8,UI_COLOR_TEXT_MAIN);
+   CreateLabel(OBJ_LBL_GROUP_WIN,"WIN --",margin,309,7,InpProfitColor);
+   CreateLabel(OBJ_LBL_GROUP_NEED,"NEED --",margin+145,309,7,InpStopColor);
+   CreateLabel(OBJ_LBL_GROUP_CALC,"LOT --",margin,325,7,UI_COLOR_TEXT_MUTED);
 
-   CreateButton(OBJ_BTN_REDUCE_SELECTED,"REDUCE GROUP",margin+4,331,contentW-8,22,UI_COLOR_NEUTRAL);
+   // Status da acao, sem transformar cada informacao em um card.
+   CreateButton(OBJ_BTN_REDUCE_SELECTED,"REDUCE GROUP",margin+4,344,contentW-8,22,UI_COLOR_NEUTRAL);
 
    //===============================================================
    // 4. TAKE / STOP
@@ -8973,6 +9002,8 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_LBL_GROUP_EXPOSURE);
    DeleteObjectSafe(OBJ_LBL_GROUP_RESULT);
    DeleteObjectSafe(OBJ_LBL_GROUP_CALC);
+   DeleteObjectSafe(OBJ_LBL_GROUP_WIN);
+   DeleteObjectSafe(OBJ_LBL_GROUP_NEED);
 
    DeleteObjectSafe(PREFIX+"SEP_1");
    DeleteObjectSafe(PREFIX+"SEP_2");
