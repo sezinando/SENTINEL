@@ -1507,23 +1507,16 @@ int GetSelectedTicket(int slot)
 
 void ClearSelectedTickets()
 {
-   GlobalVariableSet(SelectedGlobalName(1),0.0);
-   GlobalVariableSet(SelectedGlobalName(2),0.0);
+   GlobalVariableDel(SelectedGlobalName(1));
+   GlobalVariableDel(SelectedGlobalName(2));
 
    string fallbackPrefix=
       "SENTINEL_SELECTED_"+
       Symbol()+
       "_-1_";
 
-   GlobalVariableSet(
-      fallbackPrefix+"1",
-      0.0
-   );
-
-   GlobalVariableSet(
-      fallbackPrefix+"2",
-      0.0
-   );
+   GlobalVariableDel(fallbackPrefix+"1");
+   GlobalVariableDel(fallbackPrefix+"2");
 
    GlobalVariablesFlush();
 }
@@ -2937,6 +2930,9 @@ void UpdateSelectedReductionLines()
    //===============================================================
    // REFERENCE
    //===============================================================
+
+   DeleteObjectSafe(PREFIX+"LINE_SELECTED_CREDIT_2");
+   DeleteObjectSafe(PREFIX+"TXT_SELECTED_CREDIT_2");
 
    if(g_selectedReferenceTicket>0)
    {
