@@ -307,6 +307,31 @@ bool IsSelectedTicket(int ticket)
 
 void SetStatusSelectionHint()
 {
+   int t1=GetSelectedTicket(1);
+   int t2=GetSelectedTicket(2);
+
+   if(t1>0 && t2>0)
+   {
+      double r1=0.0;
+      double r2=0.0;
+
+      if(OrderSelect(t1,SELECT_BY_TICKET,MODE_TRADES))
+         r1=OrderNetResult();
+
+      if(OrderSelect(t2,SELECT_BY_TICKET,MODE_TRADES))
+         r2=OrderNetResult();
+
+      if(r1>0.00000001 && r2>0.00000001)
+      {
+         Print(
+            "SENTINEL CESTA MANAGER: "
+            "T1/T2 publicados como CREDITO. "
+            "CREDITO="+DoubleToString(r1+r2,2)
+         );
+         return;
+      }
+   }
+
    Print("SENTINEL CESTA MANAGER: selecao enviada ao SENTINEL.");
 }
 
