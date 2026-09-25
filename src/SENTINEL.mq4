@@ -2,10 +2,10 @@
 //|                                                   SENTINEL.mq4   |
 //|                    SENTINEL Operational Panel                    |
 //|                                                                  |
-//| Version 1.12                                                      |
+//| Version 1.43                                                      |
 //|                                                                  |
 //| - BUY / SELL                                                     |
-//| - REDUCE BUY / SELL / BxS                                         |
+//| - REDUCE BxS / CURRENT GROUP                                         |
 //| - CLOSE ALL                                                       |
 //| - Cesta dinamica                                                  |
 //| - Realizado / Aberto / Total                                      |
@@ -1289,10 +1289,6 @@ input color InpStopColor      = clrRed;
 #define OBJ_BTN_BUY            PREFIX+"BTN_BUY"
 #define OBJ_BTN_SELL           PREFIX+"BTN_SELL"
 
-#define OBJ_BTN_REDUCE_BUY_WIN     PREFIX+"BTN_REDUCE_BUY_WIN"
-#define OBJ_BTN_REDUCE_BUY_LOSS    PREFIX+"BTN_REDUCE_BUY_LOSS"
-#define OBJ_BTN_REDUCE_SELL_WIN    PREFIX+"BTN_REDUCE_SELL_WIN"
-#define OBJ_BTN_REDUCE_SELL_LOSS   PREFIX+"BTN_REDUCE_SELL_LOSS"
 #define OBJ_BTN_REDUCE_BOTH        PREFIX+"BTN_REDUCE_BOTH"
 
 #define OBJ_BTN_CLOSE_ALL      PREFIX+"BTN_CLOSE_ALL"
@@ -7296,15 +7292,6 @@ void ShowReduceButtonFeedback(
    g_reduceFeedbackButton=buttonName;
    g_reduceFeedbackUntil=TimeCurrent()+2;
 
-   if(buttonName==OBJ_BTN_REDUCE_BUY_WIN ||
-      buttonName==OBJ_BTN_REDUCE_BUY_LOSS)
-      g_reduceFeedbackNormal=clrDarkSlateBlue;
-   else
-   if(buttonName==OBJ_BTN_REDUCE_SELL_WIN ||
-      buttonName==OBJ_BTN_REDUCE_SELL_LOSS)
-      g_reduceFeedbackNormal=clrMaroon;
-   else
-      g_reduceFeedbackNormal=clrDarkGoldenrod;
 
    ObjectSetInteger(
       0,
@@ -7369,10 +7356,6 @@ void ResetAllButtonVisualStates()
 {
    ResetButtonVisualState(OBJ_BTN_BUY);
    ResetButtonVisualState(OBJ_BTN_SELL);
-   ResetButtonVisualState(OBJ_BTN_REDUCE_BUY_WIN);
-   ResetButtonVisualState(OBJ_BTN_REDUCE_BUY_LOSS);
-   ResetButtonVisualState(OBJ_BTN_REDUCE_SELL_WIN);
-   ResetButtonVisualState(OBJ_BTN_REDUCE_SELL_LOSS);
    ResetButtonVisualState(OBJ_BTN_REDUCE_BOTH);
    ResetButtonVisualState(OBJ_BTN_CLOSE_ALL);
    ResetButtonVisualState(OBJ_BTN_RED);
@@ -7730,13 +7713,6 @@ void BuildInterface()
    // REDUCOES RAPIDAS
    int redH=22;
 
-   CreateButton(OBJ_BTN_REDUCE_BUY_WIN,"RED BUY (+)",margin,curY,halfW,redH,UI_COLOR_CARD);
-   CreateButton(OBJ_BTN_REDUCE_SELL_WIN,"RED SELL (+)",margin+halfW+4,curY,halfW,redH,UI_COLOR_CARD);
-   curY += redH+4;
-
-   CreateButton(OBJ_BTN_REDUCE_BUY_LOSS,"RED BUY (-)",margin,curY,halfW,redH,UI_COLOR_CARD);
-   CreateButton(OBJ_BTN_REDUCE_SELL_LOSS,"RED SELL (-)",margin+halfW+4,curY,halfW,redH,UI_COLOR_CARD);
-   curY += redH+5;
 
    CreateButton(OBJ_BTN_REDUCE_BOTH,"REDUZIR PARCIAL  BxS",margin,curY,contentW,redH,UI_COLOR_CARD);
 
@@ -8938,90 +8914,6 @@ void ProcessButton(
    }
 
    //-----------------------------------------------------------------
-   // DESF BUY WIN
-   //-----------------------------------------------------------------
-
-   if(name==OBJ_BTN_REDUCE_BUY_WIN)
-   {
-      bool reduceResult=
-         ReduceSideByResult(
-            OP_BUY,
-            lots,
-            true
-         );
-
-      ShowReduceButtonFeedback(
-         OBJ_BTN_REDUCE_BUY_WIN,
-         reduceResult
-      );
-
-      return;
-   }
-
-   //-----------------------------------------------------------------
-   // DESF BUY LOSS
-   //-----------------------------------------------------------------
-
-   if(name==OBJ_BTN_REDUCE_BUY_LOSS)
-   {
-      bool reduceResult=
-         ReduceSideByResult(
-            OP_BUY,
-            lots,
-            false
-         );
-
-      ShowReduceButtonFeedback(
-         OBJ_BTN_REDUCE_BUY_LOSS,
-         reduceResult
-      );
-
-      return;
-   }
-
-   //-----------------------------------------------------------------
-   // DESF SELL WIN
-   //-----------------------------------------------------------------
-
-   if(name==OBJ_BTN_REDUCE_SELL_WIN)
-   {
-      bool reduceResult=
-         ReduceSideByResult(
-            OP_SELL,
-            lots,
-            true
-         );
-
-      ShowReduceButtonFeedback(
-         OBJ_BTN_REDUCE_SELL_WIN,
-         reduceResult
-      );
-
-      return;
-   }
-
-   //-----------------------------------------------------------------
-   // DESF SELL LOSS
-   //-----------------------------------------------------------------
-
-   if(name==OBJ_BTN_REDUCE_SELL_LOSS)
-   {
-      bool reduceResult=
-         ReduceSideByResult(
-            OP_SELL,
-            lots,
-            false
-         );
-
-      ShowReduceButtonFeedback(
-         OBJ_BTN_REDUCE_SELL_LOSS,
-         reduceResult
-      );
-
-      return;
-   }
-
-   //-----------------------------------------------------------------
    // REDUCE BxS
    //
    // So pode executar quando existe BUY e SELL simultaneamente.
@@ -9123,10 +9015,6 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_BTN_BUY);
    DeleteObjectSafe(OBJ_BTN_SELL);
 
-   DeleteObjectSafe(OBJ_BTN_REDUCE_BUY_WIN);
-   DeleteObjectSafe(OBJ_BTN_REDUCE_BUY_LOSS);
-   DeleteObjectSafe(OBJ_BTN_REDUCE_SELL_WIN);
-   DeleteObjectSafe(OBJ_BTN_REDUCE_SELL_LOSS);
    DeleteObjectSafe(OBJ_BTN_REDUCE_BOTH);
    DeleteObjectSafe(OBJ_LBL_SELECTED_1);
    DeleteObjectSafe(OBJ_LBL_SELECTED_2);
@@ -9315,19 +9203,6 @@ int OnInit()
    //===============================================================
    MakeButtonNonSelectable(OBJ_BTN_BUY);
    MakeButtonNonSelectable(OBJ_BTN_SELL);
-   MakeButtonNonSelectable(OBJ_BTN_REDUCE_BUY_WIN);
-   MakeButtonNonSelectable(OBJ_BTN_REDUCE_BUY_LOSS);
-   MakeButtonNonSelectable(OBJ_BTN_REDUCE_SELL_WIN);
-   MakeButtonNonSelectable(OBJ_BTN_REDUCE_SELL_LOSS);
-   // Tipografia compacta dos comandos de reducao.
-   if(ObjectFind(0,OBJ_BTN_REDUCE_BUY_WIN)>=0)
-      ObjectSetInteger(0,OBJ_BTN_REDUCE_BUY_WIN,OBJPROP_FONTSIZE,7);
-   if(ObjectFind(0,OBJ_BTN_REDUCE_BUY_LOSS)>=0)
-      ObjectSetInteger(0,OBJ_BTN_REDUCE_BUY_LOSS,OBJPROP_FONTSIZE,7);
-   if(ObjectFind(0,OBJ_BTN_REDUCE_SELL_WIN)>=0)
-      ObjectSetInteger(0,OBJ_BTN_REDUCE_SELL_WIN,OBJPROP_FONTSIZE,7);
-   if(ObjectFind(0,OBJ_BTN_REDUCE_SELL_LOSS)>=0)
-      ObjectSetInteger(0,OBJ_BTN_REDUCE_SELL_LOSS,OBJPROP_FONTSIZE,7);
    if(ObjectFind(0,OBJ_BTN_REDUCE_BOTH)>=0)
       ObjectSetInteger(0,OBJ_BTN_REDUCE_BOTH,OBJPROP_FONTSIZE,7);
 
