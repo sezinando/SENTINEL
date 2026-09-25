@@ -17,7 +17,7 @@
 //| - Alteracao de TAKE/STOP no painel recalcula imediatamente       |
 //+------------------------------------------------------------------+
 #property strict
-#property version "1.41"
+#property version "1.42"
 
 
 
@@ -1326,6 +1326,7 @@ input color InpStopColor      = clrRed;
 #define OBJ_LBL_GROUP_NET      PREFIX+"LBL_GROUP_NET"
 #define OBJ_LBL_GROUP_EXPOSURE PREFIX+"LBL_GROUP_EXPOSURE"
 #define OBJ_LBL_GROUP_RESULT   PREFIX+"LBL_GROUP_RESULT"
+#define OBJ_LBL_GROUP_CALC     PREFIX+"LBL_GROUP_CALC"
 
 #define OBJ_LBL_STATUS         PREFIX+"LBL_STATUS"
 #define OBJ_LBL_CHART_PROFIT   PREFIX+"LBL_CHART_PROFIT"
@@ -1427,6 +1428,14 @@ double g_selectedReferenceLots=0.0;
 double g_selectedTargetResult=0.0;
 double g_selectedReferenceResult=0.0;
 double g_selectedReduceLots=0.0;
+
+// Planejamento economico da reducao WIN + LOSS.
+double g_selectedLossCloseLots=0.0;
+double g_selectedWinRequiredMoney=0.0;
+double g_selectedWinCalculatedLots=0.0;
+double g_selectedWinExecutionLots=0.0;
+double g_selectedProjectedProfit=0.0;
+bool   g_selectedEconomicReady=false;
 
 bool   g_autoReduceEnabled=false;
 double g_autoReduceMinProfit=20.0;
@@ -1541,6 +1550,17 @@ bool GetSelectedOrderSnapshot(
    return lots>0.0;
 }
 
+//====================================================================
+// PLANO DE REDUCAO
+//
+// WIN + LOSS:
+//   REDUCE = lote que queremos retirar da LOSS.
+//   MIN PROFIT = lucro liquido minimo da realizacao.
+//   A WIN fornece a contrapartida necessaria.
+//
+// A quantidade da WIN pode ser diferente da quantidade da LOSS.
+//====================================================================
+
 bool BuildSelectedReductionPlan()
 {
    g_selectedPlanValid=false;
@@ -1551,6 +1571,13 @@ bool BuildSelectedReductionPlan()
    g_selectedTargetResult=0.0;
    g_selectedReferenceResult=0.0;
    g_selectedReduceLots=0.0;
+
+   g_selectedLossCloseLots=0.0;
+   g_selectedWinRequiredMoney=0.0;
+   g_selectedWinCalculatedLots=0.0;
+   g_selectedWinExecutionLots=0.0;
+   g_selectedProjectedProfit=0.0;
+   g_selectedEconomicReady=false;
 
    int ticket1=GetSelectedTicket(1);
    int ticket2=GetSelectedTicket(2);
@@ -1565,11 +1592,7 @@ bool BuildSelectedReductionPlan()
    double result1=0.0;
    double result2=0.0;
 
-   if(!GetSelectedOrderSnapshot(
-      ticket1,
-      type1,
-      lots1,
-      result1))
+   if(!GetSelectedOrderSnapshot(ticket1,type1,lots1,result1))
       return false;
 
    if(ticket2<=0)
@@ -1580,18 +1603,20 @@ bool BuildSelectedReductionPlan()
    }
    else
    {
-      if(!GetSelectedOrderSnapshot(
-         ticket2,
-         type2,
-         lots2,
-         result2))
+      if(!GetSelectedOrderSnapshot(ticket2,type2,lots2,result2))
          return false;
 
-      // Uma WIN e uma LOSS: a WIN e o alvo.
-      // A ordem vencedora fornece a reserva de lucro para a reducao;
-      // a LOSS permanece como referencia e nao tem prejuizo realizado.
-      if(result1>0.00000001 &&
-         result2<-0.00000001)
+      if(result1>0.00000001 && result2<-0.00000001)
+      {
+         g_selectedTargetTicket=ticket2;
+         g_selectedReferenceTicket=ticket1;
+         g_selectedTargetLots=lots2;
+         g_selectedReferenceLots=lots1;
+         g_selectedTargetResult=result2;
+         g_selectedReferenceResult=result1;
+      }
+      else
+      if(result2>0.00000001 && result1<-0.00000001)
       {
          g_selectedTargetTicket=ticket1;
          g_selectedReferenceTicket=ticket2;
@@ -1601,20 +1626,7 @@ bool BuildSelectedReductionPlan()
          g_selectedReferenceResult=result2;
       }
       else
-      if(result2>0.00000001 &&
-         result1<-0.00000001)
-      {
-         g_selectedTargetTicket=ticket2;
-         g_selectedReferenceTicket=ticket1;
-         g_selectedTargetLots=lots2;
-         g_selectedReferenceLots=lots1;
-         g_selectedTargetResult=result2;
-         g_selectedReferenceResult=result1;
-      }
-      // Duas WIN: reduz a menor ordem; a maior permanece aberta.
-      else
-      if(result1>0.00000001 &&
-         result2>0.00000001)
+      if(result1>0.00000001 && result2>0.00000001)
       {
          if(lots1<=lots2)
          {
@@ -1637,9 +1649,6 @@ bool BuildSelectedReductionPlan()
       }
       else
       {
-         // Duas LOSS: mantemos T1 como alvo e T2 como referencia.
-         // A selecao continua calculavel; a elegibilidade operacional
-         // sera validada novamente no momento da execucao.
          g_selectedTargetTicket=ticket1;
          g_selectedReferenceTicket=ticket2;
          g_selectedTargetLots=lots1;
@@ -1649,13 +1658,75 @@ bool BuildSelectedReductionPlan()
       }
    }
 
-   double requested=
-      NormalizeLots(
-         g_selectedLots
-      );
+   double requested=NormalizeLots(g_selectedLots);
 
    if(requested<=0.0)
       return false;
+
+   bool winLossPair=
+      (g_selectedReferenceTicket>0 &&
+       g_selectedTargetResult<-0.00000001 &&
+       g_selectedReferenceResult>0.00000001);
+
+   if(winLossPair)
+   {
+      g_selectedLossCloseLots=
+         NormalizeLots(
+            MathMin(
+               requested,
+               g_selectedTargetLots
+            )
+         );
+
+      if(g_selectedLossCloseLots<=0.0)
+         return false;
+
+      double lossRealized=
+         g_selectedTargetResult*
+         g_selectedLossCloseLots/
+         g_selectedTargetLots;
+
+      g_selectedWinRequiredMoney=
+         MathAbs(lossRealized)+
+         MathMax(0.0,g_autoReduceMinProfit);
+
+      double winMoneyPerLot=
+         g_selectedReferenceResult/
+         g_selectedReferenceLots;
+
+      if(winMoneyPerLot<=0.0)
+         return false;
+
+      g_selectedWinCalculatedLots=
+         g_selectedWinRequiredMoney/
+         winMoneyPerLot;
+
+      g_selectedWinExecutionLots=
+         NormalizeLotsUp(
+            g_selectedWinCalculatedLots
+         );
+
+      if(g_selectedWinExecutionLots<=0.0)
+         return false;
+
+      g_selectedProjectedProfit=
+         g_selectedReferenceResult*
+         MathMin(
+            g_selectedWinExecutionLots,
+            g_selectedReferenceLots
+         )/
+         g_selectedReferenceLots+
+         lossRealized;
+
+      g_selectedEconomicReady=
+         (g_selectedWinExecutionLots<=
+          g_selectedReferenceLots+0.00000001 &&
+          g_selectedProjectedProfit>=
+          g_autoReduceMinProfit-0.00000001);
+
+      g_selectedPlanValid=true;
+      return true;
+   }
 
    g_selectedReduceLots=
       NormalizeLots(
@@ -1723,13 +1794,10 @@ void UpdateSelectedReductionPanel()
    int ticket1=GetSelectedTicket(1);
    int ticket2=GetSelectedTicket(2);
 
-   string t1=ticket1>0 ? IntegerToString(ticket1) : "--";
-   string t2=ticket2>0 ? IntegerToString(ticket2) : "--";
-
    UpdateLabel(
       OBJ_LBL_SELECTED_1,
       ticket1>0 ?
-      "T1 #"+t1+" "+SelectedTypeText(ticket1) :
+      "T1 #"+IntegerToString(ticket1)+" "+SelectedTypeText(ticket1) :
       "T1 --",
       ticket1>0 ? UI_COLOR_TEXT_MAIN : UI_COLOR_TEXT_MUTED
    );
@@ -1737,7 +1805,7 @@ void UpdateSelectedReductionPanel()
    UpdateLabel(
       OBJ_LBL_SELECTED_2,
       ticket2>0 ?
-      "T2 #"+t2+" "+SelectedTypeText(ticket2) :
+      "T2 #"+IntegerToString(ticket2)+" "+SelectedTypeText(ticket2) :
       "T2 --",
       ticket2>0 ? UI_COLOR_TEXT_MAIN : UI_COLOR_TEXT_MUTED
    );
@@ -1751,13 +1819,13 @@ void UpdateSelectedReductionPanel()
       UpdateLabel(OBJ_LBL_GROUP_NET,"NET --",clrSilver);
       UpdateLabel(OBJ_LBL_GROUP_EXPOSURE,"EXP --",clrSilver);
       UpdateLabel(OBJ_LBL_GROUP_RESULT,"RESULT --",clrSilver);
+      UpdateLabel(OBJ_LBL_GROUP_CALC,"CALC --",clrSilver);
 
       if(ObjectFind(0,OBJ_BTN_REDUCE_SELECTED)>=0)
       {
          ObjectSetInteger(0,OBJ_BTN_REDUCE_SELECTED,OBJPROP_BGCOLOR,clrDimGray);
          ObjectSetString(0,OBJ_BTN_REDUCE_SELECTED,OBJPROP_TEXT,"REDUCE GROUP");
       }
-
       return;
    }
 
@@ -1778,11 +1846,44 @@ void UpdateSelectedReductionPanel()
       targetLiveResult))
       return;
 
-   if(targetType==OP_BUY)
-      buyAfter-=g_selectedReduceLots;
+   bool economicPair=
+      (g_selectedReferenceTicket>0 &&
+       g_selectedTargetResult<-0.00000001 &&
+       g_selectedReferenceResult>0.00000001);
+
+   if(economicPair)
+   {
+      if(targetType==OP_BUY)
+         buyAfter-=g_selectedLossCloseLots;
+      else
+      if(targetType==OP_SELL)
+         sellAfter-=g_selectedLossCloseLots;
+
+      int refType=-1;
+      double refLiveLots=0.0;
+      double refLiveResult=0.0;
+
+      if(GetSelectedOrderSnapshot(
+         g_selectedReferenceTicket,
+         refType,
+         refLiveLots,
+         refLiveResult))
+      {
+         if(refType==OP_BUY)
+            buyAfter-=g_selectedWinExecutionLots;
+         else
+         if(refType==OP_SELL)
+            sellAfter-=g_selectedWinExecutionLots;
+      }
+   }
    else
-   if(targetType==OP_SELL)
-      sellAfter-=g_selectedReduceLots;
+   {
+      if(targetType==OP_BUY)
+         buyAfter-=g_selectedReduceLots;
+      else
+      if(targetType==OP_SELL)
+         sellAfter-=g_selectedReduceLots;
+   }
 
    if(buyAfter<0.0) buyAfter=0.0;
    if(sellAfter<0.0) sellAfter=0.0;
@@ -1791,69 +1892,143 @@ void UpdateSelectedReductionPanel()
    double netAfter=buyAfter-sellAfter;
    double exposureAfter=buyAfter+sellAfter;
 
-   string targetText=
-      "TARGET #"+IntegerToString(g_selectedTargetTicket)+
-      " "+SelectedTypeText(g_selectedTargetTicket)+
-      " "+DoubleToString(g_selectedTargetLots,2)+
-      " > "+DoubleToString(g_selectedReduceLots,2);
+   if(economicPair)
+   {
+      UpdateLabel(
+         OBJ_LBL_GROUP_TARGET,
+         "LOSS #"+IntegerToString(g_selectedTargetTicket)+
+         " "+SelectedTypeText(g_selectedTargetTicket)+
+         " "+DoubleToString(g_selectedTargetLots,2)+
+         " > "+DoubleToString(g_selectedLossCloseLots,2),
+         InpStopColor
+      );
 
-   UpdateLabel(
-      OBJ_LBL_GROUP_TARGET,
-      targetText,
-      g_selectedTargetResult<0.0 ? InpStopColor : InpProfitColor
-   );
+      UpdateLabel(
+         OBJ_LBL_GROUP_REFERENCE,
+         "WIN #"+IntegerToString(g_selectedReferenceTicket)+
+         " "+SelectedTypeText(g_selectedReferenceTicket)+
+         " "+DoubleToString(g_selectedReferenceLots,2)+
+         " > "+DoubleToString(g_selectedWinExecutionLots,2),
+         InpProfitColor
+      );
 
-   string referenceText=
-      g_selectedReferenceTicket>0 ?
-      "REFERENCE #"+IntegerToString(g_selectedReferenceTicket)+
-      " "+SelectedTypeText(g_selectedReferenceTicket)+
-      " "+DoubleToString(g_selectedReferenceLots,2) :
-      "REFERENCE --";
+      UpdateLabel(
+         OBJ_LBL_GROUP_RESULT,
+         "RESULT "+FormatMoney(g_selectedProjectedProfit),
+         g_selectedProjectedProfit>=g_autoReduceMinProfit ?
+         InpProfitColor :
+         InpStopColor
+      );
 
-   UpdateLabel(
-      OBJ_LBL_GROUP_REFERENCE,
-      referenceText,
-      g_selectedReferenceTicket>0 ?
-      (g_selectedReferenceResult>=0.0 ? InpProfitColor : InpStopColor) :
-      clrSilver
-   );
+      double winCurrentMoney=g_selectedReferenceResult;
+      double winMissingMoney=
+         MathMax(
+            0.0,
+            g_selectedWinRequiredMoney-winCurrentMoney
+         );
+
+      string calcText=
+         "WIN "+FormatMoney(winCurrentMoney)+
+         " | NEED "+FormatMoney(g_selectedWinRequiredMoney)+
+         " | FALTA "+FormatMoney(winMissingMoney)+
+         " | LOT "+
+         DoubleToString(g_selectedWinCalculatedLots,3)+
+         " > "+
+         DoubleToString(g_selectedWinExecutionLots,2);
+
+      calcText+=
+         g_selectedEconomicReady ?
+         " | READY" :
+         " | WAIT";
+
+      UpdateLabel(
+         OBJ_LBL_GROUP_CALC,
+         calcText,
+         g_selectedEconomicReady ?
+         InpProfitColor :
+         InpStopColor
+      );
+   }
+   else
+   {
+      UpdateLabel(
+         OBJ_LBL_GROUP_TARGET,
+         "TARGET #"+IntegerToString(g_selectedTargetTicket)+
+         " "+SelectedTypeText(g_selectedTargetTicket)+
+         " "+DoubleToString(g_selectedTargetLots,2)+
+         " > "+DoubleToString(g_selectedReduceLots,2),
+         g_selectedTargetResult<0.0 ?
+         InpStopColor :
+         InpProfitColor
+      );
+
+      UpdateLabel(
+         OBJ_LBL_GROUP_REFERENCE,
+         g_selectedReferenceTicket>0 ?
+         "REFERENCE #"+IntegerToString(g_selectedReferenceTicket)+
+         " "+SelectedTypeText(g_selectedReferenceTicket)+
+         " "+DoubleToString(g_selectedReferenceLots,2) :
+         "REFERENCE --",
+         g_selectedReferenceTicket>0 ?
+         (g_selectedReferenceResult>=0.0 ? InpProfitColor : InpStopColor) :
+         clrSilver
+      );
+
+      UpdateLabel(
+         OBJ_LBL_GROUP_RESULT,
+         "RESULT "+
+         FormatMoney(
+            g_selectedTargetResult+
+            g_selectedReferenceResult
+         ),
+         (g_selectedTargetResult+g_selectedReferenceResult)>=0.0 ?
+         InpProfitColor :
+         InpStopColor
+      );
+
+      UpdateLabel(
+         OBJ_LBL_GROUP_CALC,
+         "CALC LEGACY",
+         UI_COLOR_TEXT_MUTED
+      );
+   }
 
    UpdateLabel(
       OBJ_LBL_GROUP_NET,
-      "NET "+
-      DoubleToString(netBefore,2)+
-      " > "+
-      DoubleToString(netAfter,2),
+      "NET "+DoubleToString(netBefore,2)+
+      " > "+DoubleToString(netAfter,2),
       netAfter>=0.0 ? InpProfitColor : InpStopColor
    );
 
    UpdateLabel(
       OBJ_LBL_GROUP_EXPOSURE,
-      "EXP "+
-      DoubleToString(exposureBefore,2)+
-      " > "+
-      DoubleToString(exposureAfter,2),
+      "EXP "+DoubleToString(exposureBefore,2)+
+      " > "+DoubleToString(exposureAfter,2),
       clrSilver
-   );
-
-   UpdateLabel(
-      OBJ_LBL_GROUP_RESULT,
-      "RES "+FormatMoney(
-         g_selectedTargetResult+
-         g_selectedReferenceResult
-      ),
-      (g_selectedTargetResult+g_selectedReferenceResult)>=0.0 ?
-      InpProfitColor :
-      InpStopColor
    );
 
    if(ObjectFind(0,OBJ_BTN_REDUCE_SELECTED)>=0)
    {
-      ObjectSetInteger(0,OBJ_BTN_REDUCE_SELECTED,OBJPROP_BGCOLOR,clrDarkGoldenrod);
+      bool buttonReady=
+         economicPair ?
+         g_selectedEconomicReady :
+         true;
+
+      ObjectSetInteger(
+         0,
+         OBJ_BTN_REDUCE_SELECTED,
+         OBJPROP_BGCOLOR,
+         buttonReady ? clrDarkGoldenrod : clrDimGray
+      );
+
       ObjectSetString(
          0,
          OBJ_BTN_REDUCE_SELECTED,
          OBJPROP_TEXT,
+         economicPair ?
+         (g_selectedEconomicReady ?
+          "REDUCE WIN+LOSS" :
+          "AGUARDAR") :
          "REDUCE "+DoubleToString(g_selectedReduceLots,2)
       );
    }
@@ -1867,79 +2042,56 @@ bool ExecuteSelectedReduction()
       return false;
    }
 
-   // WIN + LOSS: REDUCE GROUP operates on both legs.
-   // Other combinations keep the legacy single-target executor.
-   bool reduceBoth=
+   bool economicPair=
       (g_selectedReferenceTicket>0 &&
-       ((g_selectedTargetResult>0.00000001 &&
-         g_selectedReferenceResult<-0.00000001) ||
-        (g_selectedTargetResult<-0.00000001 &&
-         g_selectedReferenceResult>0.00000001)));
+       g_selectedTargetResult<-0.00000001 &&
+       g_selectedReferenceResult>0.00000001);
 
-   if(reduceBoth)
+   if(economicPair)
    {
-      int ticket1=g_selectedTargetTicket;
-      int ticket2=g_selectedReferenceTicket;
-
-      if(!OrderSelect(ticket1,SELECT_BY_TICKET,MODE_TRADES) ||
-         !IsOurOrder())
+      if(!g_selectedEconomicReady)
       {
-         SetStatus("T1 NAO DISPONIVEL",InpStopColor);
-         return false;
-      }
-
-      double lots1=OrderLots();
-
-      if(!OrderSelect(ticket2,SELECT_BY_TICKET,MODE_TRADES) ||
-         !IsOurOrder())
-      {
-         SetStatus("T2 NAO DISPONIVEL",InpStopColor);
-         return false;
-      }
-
-      double lots2=OrderLots();
-
-      double closeLots=
-         NormalizeLots(
-            MathMin(
-               g_selectedReduceLots,
-               MathMin(lots1,lots2)
-            )
-         );
-
-      if(closeLots<=0.0)
-      {
-         SetStatus("LOTE INVALIDO",InpStopColor);
-         return false;
-      }
-
-      // Revalida ambos os tickets e o volume imediatamente antes de cada close.
-      if(!OrderSelect(ticket1,SELECT_BY_TICKET,MODE_TRADES) ||
-         !IsOurOrder() ||
-         OrderLots()<closeLots)
-      {
-         SetStatus("T1 INVALIDO",InpStopColor);
-         return false;
-      }
-
-      ResetLastError();
-
-      if(!PartialCloseTicket(ticket1,closeLots))
-      {
-         int err1=GetLastError();
          SetStatus(
-            "REDUCE T1 ERRO "+IntegerToString(err1),
+            "REDUCE AGUARDAR "+FormatMoney(g_selectedWinRequiredMoney),
             InpStopColor
          );
          return false;
       }
 
-      if(!OrderSelect(ticket2,SELECT_BY_TICKET,MODE_TRADES) ||
+      int lossTicket=g_selectedTargetTicket;
+      int winTicket=g_selectedReferenceTicket;
+
+      double winCloseLots=g_selectedWinExecutionLots;
+      double lossCloseLots=g_selectedLossCloseLots;
+
+      if(!OrderSelect(winTicket,SELECT_BY_TICKET,MODE_TRADES) ||
          !IsOurOrder() ||
-         OrderLots()<closeLots)
+         (OrderType()!=OP_BUY && OrderType()!=OP_SELL) ||
+         OrderLots()<winCloseLots)
+      {
+         SetStatus("WIN INVALIDA",InpStopColor);
+         return false;
+      }
+
+      ResetLastError();
+
+      if(!PartialCloseTicket(winTicket,winCloseLots))
+      {
+         int errWin=GetLastError();
+         SetStatus(
+            "REDUCE WIN ERRO "+IntegerToString(errWin),
+            InpStopColor
+         );
+         return false;
+      }
+
+      if(!OrderSelect(lossTicket,SELECT_BY_TICKET,MODE_TRADES) ||
+         !IsOurOrder() ||
+         (OrderType()!=OP_BUY && OrderType()!=OP_SELL) ||
+         OrderLots()<lossCloseLots)
       {
          SetStatus(
-            "REDUCE PARCIAL T1 OK T2 INVALIDO",
+            "REDUCE WIN OK LOSS INVALIDA",
             InpStopColor
          );
          return false;
@@ -1947,20 +2099,20 @@ bool ExecuteSelectedReduction()
 
       ResetLastError();
 
-      if(!PartialCloseTicket(ticket2,closeLots))
+      if(!PartialCloseTicket(lossTicket,lossCloseLots))
       {
-         int err2=GetLastError();
+         int errLoss=GetLastError();
          SetStatus(
-            "REDUCE PARCIAL T1 OK T2 ERRO "+
-            IntegerToString(err2),
+            "REDUCE WIN OK LOSS ERRO "+IntegerToString(errLoss),
             InpStopColor
          );
          return false;
       }
 
       SetStatus(
-         "REDUCE GROUP "+
-         DoubleToString(closeLots,2),
+         "REDUCE +"+DoubleToString(g_selectedProjectedProfit,2)+
+         " WIN "+DoubleToString(winCloseLots,2)+
+         " LOSS "+DoubleToString(lossCloseLots,2),
          InpProfitColor
       );
 
@@ -1968,7 +2120,6 @@ bool ExecuteSelectedReduction()
       return true;
    }
 
-   // Executor legado: uma unica ordem.
    int ticket=g_selectedTargetTicket;
 
    if(!OrderSelect(ticket,SELECT_BY_TICKET,MODE_TRADES))
@@ -2002,8 +2153,7 @@ bool ExecuteSelectedReduction()
    if(!PartialCloseTicket(ticket,closeLots))
    {
       SetStatus(
-         "REDUCE SELECIONADO ERRO "+
-         IntegerToString(GetLastError()),
+         "REDUCE SELECIONADO ERRO "+IntegerToString(GetLastError()),
          InpStopColor
       );
       return false;
@@ -2034,8 +2184,7 @@ string GetAutoReduceGroupSignature()
 
 void EvaluateAutoReduce()
 {
-   if(!g_autoReduceEnabled ||
-      g_processing)
+   if(!g_autoReduceEnabled || g_processing)
       return;
 
    if(GetSelectedTicket(1)<=0)
@@ -2062,22 +2211,62 @@ void EvaluateAutoReduce()
    if(!BuildSelectedReductionPlan())
       return;
 
+   bool economicPair=
+      (g_selectedReferenceTicket>0 &&
+       g_selectedTargetResult<-0.00000001 &&
+       g_selectedReferenceResult>0.00000001);
+
+   if(economicPair)
+   {
+      if(!g_selectedEconomicReady)
+         return;
+
+      g_processing=true;
+
+      SetStatus(
+         "AUTO REDUCE WIN "+
+         DoubleToString(g_selectedWinExecutionLots,2)+
+         " LOSS "+
+         DoubleToString(g_selectedLossCloseLots,2),
+         InpProfitColor
+      );
+
+      bool ok=ExecuteSelectedReduction();
+
+      g_processing=false;
+
+      if(ok)
+      {
+         g_autoReduceExecuted=true;
+         SetStatus("AUTO REDUCE EXECUTADO",InpProfitColor);
+      }
+      else
+      {
+         SetStatus("AUTO REDUCE FALHOU",InpStopColor);
+      }
+
+      return;
+   }
+
+   // Cenarios fora de WIN + LOSS preservam o comportamento anterior.
    double groupResult=
       g_selectedTargetResult+
       g_selectedReferenceResult;
 
-   if(groupResult < g_autoReduceMinProfit)
+   if(groupResult<g_autoReduceMinProfit)
       return;
 
    double autoAvailableLots=g_selectedTargetLots;
 
    if(g_selectedReferenceTicket>0 &&
       g_selectedTargetResult*g_selectedReferenceResult<0.0)
+   {
       autoAvailableLots=
          MathMin(
             g_selectedTargetLots,
             g_selectedReferenceLots
          );
+   }
 
    double autoLots=
       NormalizeLots(
@@ -2095,35 +2284,21 @@ void EvaluateAutoReduce()
 
    g_processing=true;
 
-   SetStatus(
-      "AUTO REDUCE T"+
-      IntegerToString(g_selectedTargetTicket)+
-      " "+DoubleToString(autoLots,2),
-      InpProfitColor
-   );
-
-   bool ok=ExecuteSelectedReduction();
+   bool okLegacy=ExecuteSelectedReduction();
 
    g_processing=false;
    g_selectedLots=manualLots;
 
-   if(ok)
+   if(okLegacy)
    {
       g_autoReduceExecuted=true;
-      SetStatus(
-         "AUTO REDUCE EXECUTADO",
-         InpProfitColor
-      );
+      SetStatus("AUTO REDUCE EXECUTADO",InpProfitColor);
    }
    else
    {
-      SetStatus(
-         "AUTO REDUCE FALHOU",
-         InpStopColor
-      );
+      SetStatus("AUTO REDUCE FALHOU",InpStopColor);
    }
 }
-
 
 //====================================================================
 // LINHAS DA REDUCAO SELECIONADA
@@ -2686,6 +2861,50 @@ double NormalizeLots(double lots)
 
    if(result>MaxLot())
       result=MaxLot();
+
+   return result;
+}
+
+
+//====================================================================
+// NORMALIZA LOTES PARA CIMA
+//
+// Usada no calculo economico: o lote da WIN deve ser arredondado para
+// o proximo passo executavel para nao ficar abaixo do MIN PROFIT.
+//====================================================================
+
+double NormalizeLotsUp(double lots)
+{
+   double step=LotStep();
+
+   if(lots<=0.0 || step<=0.0)
+      return 0.0;
+
+   double result=
+      MathCeil(
+         (lots-0.00000001)/step
+      )*step;
+
+   int lotDigits=2;
+
+   if(step>=1.0)
+      lotDigits=0;
+   else
+   if(step>=0.1)
+      lotDigits=1;
+   else
+   if(step>=0.01)
+      lotDigits=2;
+   else
+      lotDigits=3;
+
+   result=NormalizeDouble(result,lotDigits);
+
+   if(result<MinLot())
+      result=MinLot();
+
+   if(result>MaxLot())
+      return 0.0;
 
    return result;
 }
@@ -7551,6 +7770,8 @@ void BuildInterface()
    curY += 15;
 
    CreateLabel(OBJ_LBL_GROUP_RESULT,"RESULT --",margin,curY,7,UI_COLOR_TEXT_MUTED);
+   curY += 15;
+   CreateLabel(OBJ_LBL_GROUP_CALC,"CALC --",margin,curY,7,UI_COLOR_TEXT_MUTED);
    curY += 17;
 
    CreateButton(OBJ_BTN_REDUCE_SELECTED,"REDUCE GROUP",margin,curY,contentW,20,UI_COLOR_NEUTRAL);
@@ -8925,6 +9146,7 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_LBL_GROUP_NET);
    DeleteObjectSafe(OBJ_LBL_GROUP_EXPOSURE);
    DeleteObjectSafe(OBJ_LBL_GROUP_RESULT);
+   DeleteObjectSafe(OBJ_LBL_GROUP_CALC);
 
    DeleteObjectSafe(PREFIX+"SEP_1");
    DeleteObjectSafe(PREFIX+"SEP_2");
