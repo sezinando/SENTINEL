@@ -1645,6 +1645,33 @@ bool BuildSelectedReductionPlan()
       double lossLots=0.0;
       double lossResult=0.0;
 
+      // No modo de teste, T3 representa explicitamente a LOSS
+      // que sera reduzida. Fora do modo de teste, preserva-se
+      // integralmente o comportamento atual: a LOSS mais negativa
+      // da cesta e encontrada automaticamente.
+      if((IsTesting() || InpTestMode))
+      {
+         int ticket3=GetSelectedTicket(3);
+
+         if(ticket3<=0)
+            return false;
+
+         int type3=-1;
+
+         if(!GetSelectedOrderSnapshot(
+            ticket3,
+            type3,
+            lossLots,
+            lossResult))
+            return false;
+
+         if(lossResult>=-0.00000001)
+            return false;
+
+         lossTicket=ticket3;
+      }
+
+      if(lossTicket<0)
       for(int i=OrdersTotal()-1;i>=0;i--)
       {
          if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))
