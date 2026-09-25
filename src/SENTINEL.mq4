@@ -152,6 +152,7 @@ void UpdateTodayRealizedPanel()
 // -1 = reconhecer qualquer Magic Number do simbolo,
 //      inclusive ordens manuais com Magic Number 0.
 input int      InpMagicNumber       = 1001;
+input bool     InpTestMode          = false;
 
 // Comentario gravado nas novas ordens do SENTINEL.
 // RED acrescenta automaticamente " RED" ao final.
@@ -1308,6 +1309,7 @@ input color InpStopColor      = clrRed;
 #define OBJ_EDIT_SELECTED_2   PREFIX+"EDIT_SELECTED_2"
 #define OBJ_LBL_SELECTED_1    PREFIX+"LBL_SELECTED_1"
 #define OBJ_LBL_SELECTED_2    PREFIX+"LBL_SELECTED_2"
+#define OBJ_LBL_SELECTED_3    PREFIX+"LBL_SELECTED_3"
 #define OBJ_LBL_SELECTED_CALC PREFIX+"LBL_SELECTED_CALC"
 #define OBJ_LBL_SELECTED_SOURCE PREFIX+"LBL_SELECTED_SOURCE"
 #define OBJ_LBL_SELECTED_EXPOSURE PREFIX+"LBL_SELECTED_EXPOSURE"
@@ -1476,7 +1478,9 @@ string SelectedGlobalName(int slot)
 
 int GetSelectedTicket(int slot)
 {
-   if(slot<1 || slot>2)
+   int maxSlot=(IsTesting() || InpTestMode) ? 3 : 2;
+
+   if(slot<1 || slot>maxSlot)
       return -1;
 
    string name=SelectedGlobalName(slot);
@@ -1509,6 +1513,7 @@ void ClearSelectedTickets()
 {
    GlobalVariableDel(SelectedGlobalName(1));
    GlobalVariableDel(SelectedGlobalName(2));
+   GlobalVariableDel(SelectedGlobalName(3));
 
    string fallbackPrefix=
       "SENTINEL_SELECTED_"+
@@ -1517,6 +1522,7 @@ void ClearSelectedTickets()
 
    GlobalVariableDel(fallbackPrefix+"1");
    GlobalVariableDel(fallbackPrefix+"2");
+   GlobalVariableDel(fallbackPrefix+"3");
 
    GlobalVariablesFlush();
 }
@@ -2040,6 +2046,19 @@ void UpdateSelectedReductionPanel()
       "T2 --",
       ticket2>0 ? UI_COLOR_TEXT_MAIN : UI_COLOR_TEXT_MUTED
    );
+
+   if(IsTesting() || InpTestMode)
+   {
+      int ticket3=GetSelectedTicket(3);
+
+      UpdateLabel(
+         OBJ_LBL_SELECTED_3,
+         ticket3>0 ?
+         "T3 #"+IntegerToString(ticket3)+" "+SelectedTypeText(ticket3) :
+         "T3 --",
+         ticket3>0 ? UI_COLOR_TEXT_MAIN : UI_COLOR_TEXT_MUTED
+      );
+   }
 
    bool valid=BuildSelectedReductionPlan();
 
@@ -9493,6 +9512,7 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_BTN_REDUCE_BOTH);
    DeleteObjectSafe(OBJ_LBL_SELECTED_1);
    DeleteObjectSafe(OBJ_LBL_SELECTED_2);
+   DeleteObjectSafe(OBJ_LBL_SELECTED_3);
    DeleteObjectSafe(OBJ_LBL_SELECTED_CALC);
    DeleteObjectSafe(OBJ_LBL_SELECTED_SOURCE);
    DeleteObjectSafe(OBJ_LBL_SELECTED_EXPOSURE);
