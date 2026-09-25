@@ -152,8 +152,95 @@ int FindSelectedSlot(int ticket)
    return 0;
 }
 
+// Remove uma selecao de um slot e elimina as Global Variables.
+// Diferente de escrever 0.0, GlobalVariableDel() realmente limpa o
+// registro persistente e evita acumulo de variaveis vazias.
+void DeleteSelectionSlot(int slot)
+{
+   if(slot<1 || slot>2)
+      return;
+
+   GlobalVariableDel(SelectionGlobalName(slot));
+   GlobalVariableDel(SelectionGenericName(slot));
+}
+
+// Valida as selecoes persistidas contra as ordens atualmente abertas.
+// Se uma ordem foi fechada, o ticket deixa de ser valido e a selecao
+// e removida automaticamente. Se T1 estiver vazio e T2 ainda valido,
+// compacta T2 para T1 para manter a selecao utilizavel.
+bool ReconcileSelection()
+{
+   if(!InpSelectionEnabled)
+      return false;
+
+   int t1=GetSelectedTicket(1);
+   int t2=GetSelectedTicket(2);
+
+   bool changed=false;
+
+   // Valida T1.
+   if(t1>0)
+   {
+      bool valid1=false;
+
+      if(OrderSelect(t1,SELECT_BY_TICKET,MODE_TRADES))
+      {
+         valid1=IsSelectedMarketOrder();
+      }
+
+      if(!valid1)
+      {
+         DeleteSelectionSlot(1);
+         t1=-1;
+         changed=true;
+      }
+   }
+
+   // Valida T2.
+   if(t2>0)
+   {
+      bool valid2=false;
+
+      if(OrderSelect(t2,SELECT_BY_TICKET,MODE_TRADES))
+      {
+         valid2=IsSelectedMarketOrder();
+      }
+
+      if(!valid2)
+      {
+         DeleteSelectionSlot(2);
+         t2=-1;
+         changed=true;
+      }
+   }
+
+   // Se T1 foi liberado mas T2 continua valido, compacta a selecao.
+   if(t1<=0 && t2>0)
+   {
+      GlobalVariableSet(
+         SelectionGlobalName(1),
+         t2
+      );
+
+      GlobalVariableSet(
+         SelectionGenericName(1),
+         t2
+      );
+
+      DeleteSelectionSlot(2);
+      changed=true;
+   }
+
+   if(changed)
+      GlobalVariablesFlush();
+
+   return changed;
+}
+
 int SelectionCount()
 {
+   ReconcileSelection();
+
    int count=0;
 
    if(GetSelectedTicket(1)>0)
@@ -167,15 +254,17 @@ int SelectionCount()
 
 void ClearSelectedTickets()
 {
-   GlobalVariableSet(SelectionGlobalName(1),0.0);
-   GlobalVariableSet(SelectionGlobalName(2),0.0);
-   GlobalVariableSet(SelectionGenericName(1),0.0);
-   GlobalVariableSet(SelectionGenericName(2),0.0);
+   DeleteSelectionSlot(1);
+   DeleteSelectionSlot(2);
    GlobalVariablesFlush();
 }
 
 void ToggleSelectedTicket(int ticket)
 {
+   // Antes de aceitar uma nova selecao, elimina tickets que ja nao
+   // representam ordens abertas.
+   ReconcileSelection();
+
    if(!InpSelectionEnabled || ticket<=0)
       return;
 
@@ -183,16 +272,7 @@ void ToggleSelectedTicket(int ticket)
 
    if(slot>0)
    {
-      GlobalVariableSet(
-         SelectionGlobalName(slot),
-         0.0
-      );
-
-      GlobalVariableSet(
-         SelectionGenericName(slot),
-         0.0
-      );
-
+      DeleteSelectionSlot(slot);
       GlobalVariablesFlush();
       return;
    }
