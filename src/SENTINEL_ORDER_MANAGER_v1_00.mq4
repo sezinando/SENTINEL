@@ -71,6 +71,8 @@ input int      InpRowHeight         = 21;
 #define OBJ_CLEAR       PREFIX+"BTN_CLEAR"
 #define OBJ_REDUCE      PREFIX+"BTN_REDUCE"
 #define OBJ_REDUCE_BXS  PREFIX+"BTN_BXS"
+#define OBJ_ORDER_LINE_1 PREFIX+"ORDER_LINE_1"
+#define OBJ_ORDER_LINE_2 PREFIX+"ORDER_LINE_2"
 
 //====================================================================
 // DADOS
@@ -403,6 +405,96 @@ int CollectOrders(OrderRow &rows[])
    }
 
    return ArraySize(rows);
+}
+
+//====================================================================
+// LINHAS DE ORDEM NO GRAFICO
+//====================================================================
+
+void DeleteOrderLine(int slot)
+{
+   if(slot<1 || slot>2)
+      return;
+
+   string name=
+      slot==1 ? OBJ_ORDER_LINE_1 : OBJ_ORDER_LINE_2;
+
+   DeleteObjectSafe(name);
+}
+
+void UpdateOrderLine(int slot,int ticket)
+{
+   if(slot<1 || slot>2)
+      return;
+
+   string name=
+      slot==1 ? OBJ_ORDER_LINE_1 : OBJ_ORDER_LINE_2;
+
+   if(ticket<=0)
+   {
+      DeleteOrderLine(slot);
+      return;
+   }
+
+   if(!OrderSelect(ticket,SELECT_BY_TICKET,MODE_TRADES))
+   {
+      DeleteOrderLine(slot);
+      return;
+   }
+
+   if(!IsManagedMarketOrder())
+   {
+      DeleteOrderLine(slot);
+      return;
+   }
+
+   double price=OrderOpenPrice();
+
+   if(ObjectFind(0,name)<0)
+   {
+      ResetLastError();
+
+      if(!ObjectCreate(
+         0,
+         name,
+         OBJ_HLINE,
+         0,
+         0,
+         price))
+      {
+         return;
+      }
+   }
+
+   ObjectSetDouble(0,name,OBJPROP_PRICE1,price);
+   ObjectSetInteger(
+      0,name,OBJPROP_COLOR,
+      slot==1 ? InpBuyColor : InpSelectedColor
+   );
+   ObjectSetInteger(0,name,OBJPROP_STYLE,STYLE_SOLID);
+   ObjectSetInteger(0,name,OBJPROP_WIDTH,2);
+   ObjectSetInteger(0,name,OBJPROP_BACK,false);
+   ObjectSetInteger(0,name,OBJPROP_SELECTABLE,false);
+   ObjectSetInteger(0,name,OBJPROP_SELECTED,false);
+   ObjectSetInteger(0,name,OBJPROP_HIDDEN,true);
+   ObjectSetInteger(0,name,OBJPROP_ZORDER,450);
+
+   string side=TypeText(OrderType());
+   string label=
+      "T"+IntegerToString(slot)+
+      " #"+IntegerToString(ticket)+
+      " "+side+
+      "  "+DoubleToString(price,Digits);
+
+   ObjectSetString(
+      0,name,OBJPROP_TOOLTIP,label
+   );
+}
+
+void UpdateSelectedOrderLines()
+{
+   UpdateOrderLine(1,GetSelectedTicket(1));
+   UpdateOrderLine(2,GetSelectedTicket(2));
 }
 
 //====================================================================
@@ -872,6 +964,8 @@ void Render()
       8
    );
 
+   UpdateSelectedOrderLines();
+
    ChartRedraw();
 }
 
@@ -969,6 +1063,8 @@ void OnDeinit(const int reason)
    DeleteObjectSafe(OBJ_CLEAR);
    DeleteObjectSafe(OBJ_REDUCE);
    DeleteObjectSafe(OBJ_REDUCE_BXS);
+   DeleteOrderLine(1);
+   DeleteOrderLine(2);
 
    for(int i=0;i<150;i++)
    {
