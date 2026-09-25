@@ -2202,7 +2202,7 @@ void UpdateSelectedReductionPanel()
             "REDUCE AGUARDAR "+FormatMoney(g_selectedCreditRequiredMoney),
             InpStopColor
          );
-         return false;
+         return;
       }
 
       int lossTicket=g_selectedTargetTicket;
@@ -2219,7 +2219,7 @@ void UpdateSelectedReductionPanel()
          OrderLots()<closeCredit1)
       {
          SetStatus("CREDITO T1 INVALIDO",InpStopColor);
-         return false;
+         return;
       }
 
       if(!OrderSelect(creditTicket2,SELECT_BY_TICKET,MODE_TRADES) ||
@@ -2228,7 +2228,7 @@ void UpdateSelectedReductionPanel()
          OrderLots()<closeCredit2)
       {
          SetStatus("CREDITO T2 INVALIDO",InpStopColor);
-         return false;
+         return;
       }
 
       if(!OrderSelect(lossTicket,SELECT_BY_TICKET,MODE_TRADES) ||
@@ -2237,25 +2237,25 @@ void UpdateSelectedReductionPanel()
          OrderLots()<closeLoss)
       {
          SetStatus("LOSS INVALIDA",InpStopColor);
-         return false;
+         return;
       }
 
       if(closeCredit1>0.0 && !PartialCloseTicket(creditTicket1,closeCredit1))
       {
          SetStatus("CREDITO T1 ERRO "+IntegerToString(GetLastError()),InpStopColor);
-         return false;
+         return;
       }
 
       if(closeCredit2>0.0 && !PartialCloseTicket(creditTicket2,closeCredit2))
       {
          SetStatus("CREDITO T2 ERRO "+IntegerToString(GetLastError()),InpStopColor);
-         return false;
+         return;
       }
 
       if(!PartialCloseTicket(lossTicket,closeLoss))
       {
          SetStatus("CREDITO OK LOSS ERRO "+IntegerToString(GetLastError()),InpStopColor);
-         return false;
+         return;
       }
 
       SetStatus(
@@ -2268,7 +2268,7 @@ void UpdateSelectedReductionPanel()
       );
 
       ClearSelectedTickets();
-      return true;
+      return;
    }
 
    bool economicPair=
