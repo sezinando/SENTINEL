@@ -7897,9 +7897,9 @@ void BuildInterface()
       UI_COLOR_NEUTRAL
    );
 
-   curY+=31;
+   curY+=16;
    CreatePanelSeparator(PREFIX+"SEP_5",curY);
-   curY+=9;
+   curY+=7;
 
    //===============================================================
    // TAKE / STOP
@@ -7994,9 +7994,9 @@ void BuildInterface()
       InpSellColor
    );
 
-   curY+=31;
+   curY+=25;
    CreatePanelSeparator(PREFIX+"SEP_6",curY);
-   curY+=8;
+   curY+=7;
 
    //===============================================================
    // EXPOSICAO / STATUS
@@ -8010,7 +8010,7 @@ void BuildInterface()
       UI_COLOR_TEXT_MUTED
    );
 
-   curY+=14;
+   curY+=13;
 
    CreateLabel(
       OBJ_LBL_BUY,
@@ -8039,7 +8039,7 @@ void BuildInterface()
       InpProfitColor
    );
 
-   curY+=21;
+   curY+=19;
 
    // RED ocupa sua propria linha. Nao compete com NET.
    CreateLabel(
