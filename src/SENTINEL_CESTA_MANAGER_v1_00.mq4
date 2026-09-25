@@ -43,7 +43,7 @@ input bool     InpShowOrderTickets  = false;
 input bool     InpShowLosing        = false;
 input bool     InpSelectionEnabled  = true;
 input bool     InpTestMode          = false;
-input int      InpSelectionMax      = 2;
+input int      InpSelectionMax      = 3;
 input bool     InpShowSummary       = true;
 
 input color    InpPanelBorder       = clrSlateGray;
@@ -151,6 +151,9 @@ int FindSelectedSlot(int ticket)
 
    if(GetSelectedTicket(2)==ticket)
       return 2;
+
+   if((IsTesting() || InpTestMode) && GetSelectedTicket(3)==ticket)
+      return 3;
 
    return 0;
 }
@@ -301,10 +304,12 @@ void ToggleSelectedTicket(int ticket)
 
    int count=SelectionCount();
 
-   int maxSelection=MathMin(
-      (IsTesting() || InpTestMode) ? 3 : 2,
-      MathMax(1,InpSelectionMax)
-   );
+   int maxSelection=MathMax(1,InpSelectionMax);
+
+   if(IsTesting() || InpTestMode)
+      maxSelection=MathMin(3,MathMax(3,maxSelection));
+   else
+      maxSelection=MathMin(2,maxSelection);
 
    if(count>=maxSelection)
       return;
