@@ -7027,12 +7027,14 @@ void CreatePanel()
       1
    );
 
-   // Cards visuais compactos. Coordenadas relativas ao painel.
+   // Cards visuais alinhados com a nova hierarquia vertical.
+   // O card e apenas fundo: controles permanecem acima dele por ZORDER.
    CreatePanelCard("SENTINEL_CARD_HEADER", 8, 8, 284, 42);
-   CreatePanelCard("SENTINEL_CARD_TRADING", 8, 54, 284, 110);
-   CreatePanelCard("SENTINEL_CARD_GROUP", 8, 168, 284, 138);
-   CreatePanelCard("SENTINEL_CARD_RISK", 8, 310, 284, 64);
-   CreatePanelCard("SENTINEL_CARD_ENTRY", 8, 374, 284, 40);
+   CreatePanelCard("SENTINEL_CARD_TRADING", 8, 54, 284, 116);
+   CreatePanelCard("SENTINEL_CARD_GROUP", 8, 176, 284, 216);
+   CreatePanelCard("SENTINEL_CARD_RISK", 8, 401, 284, 89);
+   CreatePanelCard("SENTINEL_CARD_FOOTER", 8, 498, 284, 54);
+   DeleteObjectSafe("SENTINEL_CARD_ENTRY");
 
    ChartRedraw();
 }
