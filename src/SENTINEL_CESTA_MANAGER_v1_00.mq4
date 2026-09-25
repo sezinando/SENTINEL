@@ -42,6 +42,7 @@ input bool     InpShowPanel         = true;
 input bool     InpShowOrderTickets  = false;
 input bool     InpShowLosing        = false;
 input bool     InpSelectionEnabled  = true;
+input bool     InpTestMode          = false;
 input int      InpSelectionMax      = 2;
 input bool     InpShowSummary       = true;
 
@@ -122,7 +123,9 @@ string SelectionGenericName(int slot)
 
 int GetSelectedTicket(int slot)
 {
-   if(slot<1 || slot>2)
+   int maxSlot=(IsTesting() || InpTestMode) ? 3 : 2;
+
+   if(slot<1 || slot>maxSlot)
       return -1;
 
    string name=SelectionGlobalName(slot);
@@ -157,7 +160,7 @@ int FindSelectedSlot(int ticket)
 // registro persistente e evita acumulo de variaveis vazias.
 void DeleteSelectionSlot(int slot)
 {
-   if(slot<1 || slot>2)
+   if(slot<1 || slot>3)
       return;
 
    GlobalVariableDel(SelectionGlobalName(slot));
@@ -175,6 +178,7 @@ bool ReconcileSelection()
 
    int t1=GetSelectedTicket(1);
    int t2=GetSelectedTicket(2);
+   int t3=GetSelectedTicket(3);
 
    bool changed=false;
 
@@ -214,6 +218,20 @@ bool ReconcileSelection()
       }
    }
 
+   if((IsTesting() || InpTestMode) && t3>0)
+   {
+      bool valid3=false;
+      if(OrderSelect(t3,SELECT_BY_TICKET,MODE_TRADES))
+         valid3=IsSelectedMarketOrder();
+
+      if(!valid3)
+      {
+         DeleteSelectionSlot(3);
+         t3=-1;
+         changed=true;
+      }
+   }
+
    // Se T1 foi liberado mas T2 continua valido, compacta a selecao.
    if(t1<=0 && t2>0)
    {
@@ -249,6 +267,9 @@ int SelectionCount()
    if(GetSelectedTicket(2)>0)
       count++;
 
+   if((IsTesting() || InpTestMode) && GetSelectedTicket(3)>0)
+      count++;
+
    return count;
 }
 
@@ -256,6 +277,7 @@ void ClearSelectedTickets()
 {
    DeleteSelectionSlot(1);
    DeleteSelectionSlot(2);
+   DeleteSelectionSlot(3);
    GlobalVariablesFlush();
 }
 
@@ -279,11 +301,19 @@ void ToggleSelectedTicket(int ticket)
 
    int count=SelectionCount();
 
-   if(count>=MathMin(2,MathMax(1,InpSelectionMax)))
+   int maxSelection=MathMin(
+      (IsTesting() || InpTestMode) ? 3 : 2,
+      MathMax(1,InpSelectionMax)
+   );
+
+   if(count>=maxSelection)
       return;
 
-   int targetSlot=
-      GetSelectedTicket(1)<=0 ? 1 : 2;
+   int targetSlot=1;
+   if(GetSelectedTicket(1)>0)
+      targetSlot=2;
+   if(GetSelectedTicket(2)>0 && maxSelection>=3)
+      targetSlot=3;
 
    GlobalVariableSet(
       SelectionGlobalName(targetSlot),
