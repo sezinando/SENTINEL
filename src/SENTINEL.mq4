@@ -9521,7 +9521,6 @@ void CheckAutoClose()
 {
    if(g_processing)
       return;
-      return;
 
    // Protecao na inicializacao/recarregamento/troca de ativo.
    // O Sentinel reconhece a cesta, mas nao executa Auto Close
