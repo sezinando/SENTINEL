@@ -8546,6 +8546,7 @@ void UpdateReduceBothAvailability()
 void UpdateInterface()
 {
    UpdateTodayRealizedPanel();
+   PublishTesterOrderBridge();
    UpdateSelectedReductionPanel();
 
    ResetAllButtonVisualStates();
@@ -9876,6 +9877,62 @@ void PollTesterButtons()
    if(ProcessTesterButtonState(OBJ_BTN_REDUCE_BOTH)) return;
    if(ProcessTesterButtonState(OBJ_BTN_CLOSE_ALL)) return;
    if(ProcessTesterButtonState(OBJ_BTN_RED)) return;
+}
+
+//====================================================================
+// PONTE TESTER -> CESTA MANAGER
+//====================================================================
+
+string TesterOrderBridgePrefix()
+{
+   return "SENTINEL_TEST_ORDER_"+Symbol()+"_";
+}
+
+void PublishTesterOrderBridge()
+{
+   if(!IsTesting())
+      return;
+
+   string prefix=TesterOrderBridgePrefix();
+   int maxSlots=100;
+
+   // Limpa o snapshot anterior.
+   for(int i=0;i<maxSlots;i++)
+   {
+      string base=prefix+IntegerToString(i)+"_";
+      GlobalVariableDel(base+"ACTIVE");
+   }
+
+   int slot=0;
+
+   for(int i=OrdersTotal()-1;i>=0 && slot<maxSlots;i--)
+   {
+      if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))
+         continue;
+
+      int type=OrderType();
+      if(type!=OP_BUY && type!=OP_SELL)
+         continue;
+
+      if(OrderSymbol()!=Symbol())
+         continue;
+
+      string base=prefix+IntegerToString(slot)+"_";
+
+      GlobalVariableSet(base+"ACTIVE",1.0);
+      GlobalVariableSet(base+"TICKET",(double)OrderTicket());
+      GlobalVariableSet(base+"TYPE",(double)type);
+      GlobalVariableSet(base+"MAGIC",(double)OrderMagicNumber());
+      GlobalVariableSet(base+"LOTS",OrderLots());
+      GlobalVariableSet(base+"RESULT",OrderProfit()+OrderSwap()+OrderCommission());
+      GlobalVariableSet(base+"OPENPRICE",OrderOpenPrice());
+      GlobalVariableSet(base+"OPENTIME",(double)OrderOpenTime());
+
+      slot++;
+   }
+
+   GlobalVariableSet(prefix+"COUNT",(double)slot);
+   GlobalVariablesFlush();
 }
 
 void OnTick()
