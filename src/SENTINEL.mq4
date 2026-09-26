@@ -6474,14 +6474,20 @@ bool RebalanceSides()
 
 bool CloseAllPositions()
 {
+   // CLOSE ALL precisa ser confirmado pela quantidade real de
+   // posicoes abertas. Uma falha transitoria em OrderClose nao pode
+   // deixar a cesta parcialmente aberta sem nova tentativa.
    bool success=true;
 
    DeleteRecoveryPendingOrders();
 
    for(int pass=0;
-       pass<3;
+       pass<10;
        pass++)
    {
+      bool passHadFailure=false;
+      bool passHadOrder=false;
+
       for(int i=OrdersTotal()-1;
           i>=0;
           i--)
@@ -6495,67 +6501,95 @@ bool CloseAllPositions()
          if(!IsOurOrder())
             continue;
 
-         int ticket=
-            OrderTicket();
+         int type=OrderType();
 
-         int type=
-            OrderType();
+         // CLOSE ALL trata somente ordens de mercado.
+         if(type!=OP_BUY && type!=OP_SELL)
+            continue;
 
-         double lots=
-            OrderLots();
+         passHadOrder=true;
+
+         int ticket=OrderTicket();
+         double lots=OrderLots();
+
+         if(lots<=0.0)
+            continue;
 
          RefreshRates();
 
-         double price=0.0;
-
-         if(type==OP_BUY)
-            price=Bid;
-         else
-         if(type==OP_SELL)
-            price=Ask;
+         double price=
+            (type==OP_BUY) ? Bid : Ask;
 
          ResetLastError();
 
-         bool result=
-            OrderClose(
-               ticket,
-               lots,
-               price,
-               InpSlippage,
-               clrNONE
-            );
-
-         if(!result)
+         if(!OrderClose(
+            ticket,
+            lots,
+            price,
+            InpSlippage,
+            clrNONE))
          {
-            int error=
-               GetLastError();
+            int error=GetLastError();
+
+            passHadFailure=true;
+            success=false;
 
             Print(
                "SENTINEL CLOSE ALL ticket=",
                ticket,
+               " tentativa=",
+               pass+1,
                " erro=",
                error
             );
-
-            success=false;
          }
       }
 
+      // A cada passada verificamos o estado REAL da cesta.
       if(CountOpenPositions()==0)
-         break;
+      {
+         SetStatus(
+            "CLOSE ALL EXECUTADO",
+            InpProfitColor
+         );
 
-      Sleep(100);
+         return true;
+      }
+
+      // Ainda existem posicoes. Damos uma pequena janela para o
+      // terminal atualizar o pool de ordens antes da nova tentativa.
+      if(passHadOrder)
+         Sleep(100);
+
+      // Se nao houve ordem processavel, nao adianta repetir.
+      if(!passHadOrder && !passHadFailure)
+         break;
    }
 
-   if(success)
+   // Nunca reportar sucesso enquanto ainda houver posicao aberta.
+   int remaining=CountOpenPositions();
+
+   if(remaining>0)
    {
       SetStatus(
-         "CLOSE ALL EXECUTADO",
-         InpProfitColor
+         "CLOSE ALL INCOMPLETO "+IntegerToString(remaining),
+         InpStopColor
       );
+
+      Print(
+         "SENTINEL CLOSE ALL INCOMPLETO posicoes_restantes=",
+         remaining
+      );
+
+      return false;
    }
 
-   return success;
+   SetStatus(
+      "CLOSE ALL EXECUTADO",
+      InpProfitColor
+   );
+
+   return true;
 }
 
 //====================================================================
@@ -9485,12 +9519,8 @@ void UpdateAutoCloseArming()
 
 void CheckAutoClose()
 {
-   // ENCERRAMENTO AUTOMATICO DESABILITADO.
-   // A cesta permanece sob encerramento manual ate definirmos
-   // a politica automatica de fechamento.
-   return;
-
    if(g_processing)
+      return;
       return;
 
    // Protecao na inicializacao/recarregamento/troca de ativo.
