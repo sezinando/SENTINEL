@@ -7226,9 +7226,10 @@ string BuildOrderComment(bool isRed)
 // O step cresce por nivel e multiplicador, limitado por StepMax.
 // O lote progride a partir do lote da ultima ordem, limitado por MaxLot.
 //
-// Trailing atua sobre as pendencias Recovery:
+// Trailing atua exclusivamente sobre as pendencias Recovery:
 // quando a pendencia se distancia do preco corrente pelo menos
-// RecoveryTrailingStep, ela e reposicionada para o step dinamico atual.
+// PendingStep Trail (InpRecoveryTrailingStep), ela e reposicionada
+// para o step dinamico atual. A Recovery ativada nao recebe trailing.
 //====================================================================
 
 string RecoveryComment(int direction)
@@ -7570,7 +7571,7 @@ void RecoveryManageTrailing()
 
             desired=Ask+buyResetDistance;
 
-            if(desired>=currentPrice)
+            if(desired<=currentPrice)
                continue;
 
             if(desired<Ask+minimumDistance)
@@ -7587,7 +7588,7 @@ void RecoveryManageTrailing()
 
             desired=Bid-sellResetDistance;
 
-            if(desired<=currentPrice)
+            if(desired>=currentPrice)
                continue;
 
             if(desired>Bid-minimumDistance)
@@ -7622,78 +7623,6 @@ void RecoveryManageTrailing()
          continue;
       }
 
-      //==============================================================
-      // RECOVERY ATIVADA — TRAILING DA POSICAO
-      //==============================================================
-      if(type==OP_BUY)
-      {
-         double newStop=Bid-trailDistance;
-         newStop=NormalizePrice(newStop);
-
-         // O SL somente avanca; nunca recua.
-         if(OrderStopLoss()>0.0 &&
-            newStop<=OrderStopLoss()+point)
-            continue;
-
-         // Nao colocar SL acima do BID.
-         if(newStop>=Bid)
-            continue;
-
-         ResetLastError();
-
-         if(!OrderModify(
-            OrderTicket(),
-            OrderOpenPrice(),
-            newStop,
-            OrderTakeProfit(),
-            0,
-            clrNONE))
-         {
-            Print(
-               "SENTINEL RECOVERY TRAIL BUY erro=",
-               GetLastError(),
-               " ticket=",
-               OrderTicket()
-            );
-         }
-
-         continue;
-      }
-
-      if(type==OP_SELL)
-      {
-         double newStop=Ask+trailDistance;
-         newStop=NormalizePrice(newStop);
-
-         // O SL somente avanca; nunca recua.
-         if(OrderStopLoss()>0.0 &&
-            newStop>=OrderStopLoss()-point)
-            continue;
-
-         // Nao colocar SL abaixo do ASK.
-         if(newStop<=Ask)
-            continue;
-
-         ResetLastError();
-
-         if(!OrderModify(
-            OrderTicket(),
-            OrderOpenPrice(),
-            newStop,
-            OrderTakeProfit(),
-            0,
-            clrNONE))
-         {
-            Print(
-               "SENTINEL RECOVERY TRAIL SELL erro=",
-               GetLastError(),
-               " ticket=",
-               OrderTicket()
-            );
-         }
-
-         continue;
-      }
    }
 }
 
@@ -9508,6 +9437,11 @@ void UpdateAutoCloseArming()
 
 void CheckAutoClose()
 {
+   // ENCERRAMENTO AUTOMATICO DESABILITADO.
+   // A cesta permanece sob encerramento manual ate definirmos
+   // a politica automatica de fechamento.
+   return;
+
    if(g_processing)
       return;
 
