@@ -8088,6 +8088,20 @@ void CreateButton(
 }
 
 //====================================================================
+// TESTER — CACHE DOS CAMPOS EDITAVEIS
+//====================================================================
+//
+// No Strategy Tester Visual, o MT4 pode nao entregar
+// CHARTEVENT_OBJECT_ENDEDIT/CHANGE para OBJ_EDIT. Mantemos o ultimo
+// texto processado e detectamos alteracoes diretamente em OnTick().
+//
+string g_testerEditLastLots    = "";
+string g_testerEditLastAutoMin = "";
+string g_testerEditLastAutoLots= "";
+string g_testerEditLastTarget  = "";
+string g_testerEditLastStop    = "";
+
+//====================================================================
 // EDIT
 //====================================================================
 
@@ -9880,6 +9894,75 @@ void PollTesterButtons()
 }
 
 //====================================================================
+// TESTER — POLLING DOS CAMPOS EDITAVEIS
+//====================================================================
+//
+// No Strategy Tester Visual, a edicao de OBJ_EDIT pode alterar
+// OBJPROP_TEXT sem gerar CHARTEVENT_OBJECT_ENDEDIT/CHANGE.
+// Detectamos a alteracao no OnTick() e reutilizamos ProcessEdit(),
+// preservando exatamente a mesma validacao e persistencia do caminho
+// normal do grafico.
+//====================================================================
+
+void PollTesterEdits()
+{
+   if(!IsTesting() || !IsVisualMode())
+      return;
+
+   string text;
+
+   if(ObjectFind(0,OBJ_EDIT_LOTS)>=0)
+   {
+      text=ObjectGetString(0,OBJ_EDIT_LOTS,OBJPROP_TEXT);
+      if(text!=g_testerEditLastLots)
+      {
+         g_testerEditLastLots=text;
+         ProcessEdit(OBJ_EDIT_LOTS);
+      }
+   }
+
+   if(ObjectFind(0,OBJ_EDIT_AUTO_MIN)>=0)
+   {
+      text=ObjectGetString(0,OBJ_EDIT_AUTO_MIN,OBJPROP_TEXT);
+      if(text!=g_testerEditLastAutoMin)
+      {
+         g_testerEditLastAutoMin=text;
+         ProcessEdit(OBJ_EDIT_AUTO_MIN);
+      }
+   }
+
+   if(ObjectFind(0,OBJ_EDIT_AUTO_LOTS)>=0)
+   {
+      text=ObjectGetString(0,OBJ_EDIT_AUTO_LOTS,OBJPROP_TEXT);
+      if(text!=g_testerEditLastAutoLots)
+      {
+         g_testerEditLastAutoLots=text;
+         ProcessEdit(OBJ_EDIT_AUTO_LOTS);
+      }
+   }
+
+   if(ObjectFind(0,OBJ_EDIT_TARGET)>=0)
+   {
+      text=ObjectGetString(0,OBJ_EDIT_TARGET,OBJPROP_TEXT);
+      if(text!=g_testerEditLastTarget)
+      {
+         g_testerEditLastTarget=text;
+         ProcessEdit(OBJ_EDIT_TARGET);
+      }
+   }
+
+   if(ObjectFind(0,OBJ_EDIT_STOP)>=0)
+   {
+      text=ObjectGetString(0,OBJ_EDIT_STOP,OBJPROP_TEXT);
+      if(text!=g_testerEditLastStop)
+      {
+         g_testerEditLastStop=text;
+         ProcessEdit(OBJ_EDIT_STOP);
+      }
+   }
+}
+
+//====================================================================
 // PONTE TESTER -> CESTA MANAGER
 //====================================================================
 
@@ -9940,9 +10023,9 @@ void OnTick()
    UpdateTodayRealizedPanel();
 
    // No Strategy Tester Visual, OnChartEvent nao e disparado.
-   // Processamos o estado dos botoes antes de UpdateInterface(),
-   // que restaura o estado visual normal dos controles.
+   // Processamos botoes e campos editaveis antes de UpdateInterface().
    PollTesterButtons();
+   PollTesterEdits();
 
    StartBasketIfNeeded();
 
