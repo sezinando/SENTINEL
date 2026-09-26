@@ -9807,9 +9807,85 @@ void OnDeinit(
 // TICK
 //====================================================================
 
+//====================================================================
+// TESTER — POLLING DOS BOTOES
+//====================================================================
+//
+// No Strategy Tester Visual do MT4, CHARTEVENT_OBJECT_CLICK nao e
+// entregue ao EA. Em modo tester, lemos OBJPROP_STATE em OnTick()
+// e encaminhamos o mesmo nome para ProcessButton().
+//
+// O caminho normal continua usando OnChartEvent().
+//====================================================================
+
+bool ProcessTesterButtonState(string name)
+{
+   if(ObjectFind(0,name)<0)
+      return false;
+
+   bool pressed=
+      (bool)ObjectGetInteger(
+         0,
+         name,
+         OBJPROP_STATE
+      );
+
+   if(!pressed)
+      return false;
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_STATE,
+      false
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_SELECTED,
+      false
+   );
+
+   ProcessButton(name);
+
+   return true;
+}
+
+void PollTesterButtons()
+{
+   if(!IsTesting() || !IsVisualMode())
+      return;
+
+   if(ProcessTesterButtonState(OBJ_BTN_AUTO_REDUCE)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_REDUCE_SELECTED)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_CLEAR_SELECTED)) return;
+
+   if(ProcessTesterButtonState(OBJ_BTN_LOTS_MINUS_10)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_LOTS_MINUS_1)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_LOTS_PLUS_1)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_LOTS_PLUS_10)) return;
+
+   if(ProcessTesterButtonState(OBJ_BTN_TARGET_MINUS)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_TARGET_PLUS)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_STOP_MINUS)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_STOP_PLUS)) return;
+
+   if(ProcessTesterButtonState(OBJ_BTN_BUY)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_SELL)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_REDUCE_BOTH)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_CLOSE_ALL)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_RED)) return;
+}
+
 void OnTick()
 {
    UpdateTodayRealizedPanel();
+
+   // No Strategy Tester Visual, OnChartEvent nao e disparado.
+   // Processamos o estado dos botoes antes de UpdateInterface(),
+   // que restaura o estado visual normal dos controles.
+   PollTesterButtons();
 
    StartBasketIfNeeded();
 
