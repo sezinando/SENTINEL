@@ -7544,16 +7544,6 @@ bool RecoveryPlacePending(int direction)
       return false;
    }
 
-   // O PendingStep Trail mede deslocamento do mercado desde o ultimo
-   // reposicionamento deste ticket, e nao a distancia entre dois
-   // precos do pending.
-   RefreshRates();
-
-   SetRecoveryTrailAnchor(
-      ticket,
-      direction==OP_BUY ? Ask : Bid
-   );
-
    SetStatus(
       direction==OP_BUY ?
       "RECOVERY BUY #"+IntegerToString(ticket) :
@@ -7566,6 +7556,18 @@ bool RecoveryPlacePending(int direction)
 
 void RecoveryManageTrailing()
 {
+   // Replica a logica do EAGOLD TrailAllStopOrders() para a familia
+   // RECOVERY:
+   //
+   // 1) PendingStep Trail e o GATILHO.
+   // 2) RecoveryStepDistance e a DISTANCIA DE RESET.
+   // 3) O pending somente acompanha quando:
+   //       novo_preco = mercado +/- RecoveryStep
+   //    resultar em um preco MAIS PROXIMO do mercado que o pending atual.
+   //
+   // Portanto, a ordem NAO acompanha tick a tick. Ela permanece no
+   // lugar ate que o deslocamento do mercado seja suficiente para que
+   // o novo reset fique atras do pending atual.
    if(!g_recoveryEnabled ||
       !g_recoveryTrailingEnabled ||
       InpRecoveryTrailingStep<=0.0)
@@ -7576,11 +7578,11 @@ void RecoveryManageTrailing()
    if(point<=0.0)
       return;
 
-   double trailDistance=
-      InpRecoveryTrailingStep*point;
+   double stopLevel=
+      MarketInfo(Symbol(),MODE_STOPLEVEL)*point;
 
-   double minimumDistance=
-      RecoveryMinimumPendingDistance()*point;
+   double triggerDistance=
+      InpRecoveryTrailingStep*point;
 
    for(int i=OrdersTotal()-1;i>=0;i--)
    {
@@ -7596,102 +7598,118 @@ void RecoveryManageTrailing()
 
       int type=OrderType();
 
-      if(type!=OP_BUYSTOP && type!=OP_SELLSTOP)
+      if(type!=OP_BUYSTOP &&
+         type!=OP_SELLSTOP)
          continue;
 
       if(!IsRecoveryComment(OrderComment()))
          continue;
 
-      int ticket=OrderTicket();
-
       RefreshRates();
 
-      double marketPrice=
-         type==OP_BUYSTOP ? Ask : Bid;
+      double current=OrderOpenPrice();
+      double desired=current;
+      double marketDistance=0.0;
 
-      double anchor=
-         RecoveryTrailAnchor(
-            ticket,
-            marketPrice
-         );
-
-      // PendingStep Trail = deslocamento minimo do mercado desde
-      // o ultimo reposicionamento deste pending.
-      double marketMove=
-         type==OP_BUYSTOP ?
-         marketPrice-anchor :
-         anchor-marketPrice;
-
-      if(marketMove<trailDistance)
-         continue;
-
+      // O reset usa o step dinamico do nivel atual da Recovery.
       int level=
          type==OP_BUYSTOP ?
          RecoveryMarketCount(OP_BUY) :
          RecoveryMarketCount(OP_SELL);
 
+      double resetPoints=
+         RecoveryStepForLevel(level);
+
+      if(resetPoints<=0.0)
+         continue;
+
       double resetDistance=
-         RecoveryStepForLevel(level)*point;
+         resetPoints*point;
 
-      if(resetDistance<minimumDistance)
-         resetDistance=minimumDistance;
-
-      double desired=
-         type==OP_BUYSTOP ?
-         marketPrice+resetDistance :
-         marketPrice-resetDistance;
-
-      desired=NormalizePrice(desired);
-
-      double currentPrice=OrderOpenPrice();
-
-      // BUY STOP somente acompanha para cima.
       if(type==OP_BUYSTOP)
       {
-         if(desired<=currentPrice+point)
+         // Distancia atual do pending para o ASK.
+         marketDistance=current-Ask;
+
+         if(marketDistance<triggerDistance)
             continue;
 
-         if(desired<=Ask+minimumDistance)
+         // Exatamente como no EAGOLD:
+         // reposiciona para ASK + RecoveryStep.
+         desired=NormalizePrice(
+            Ask+resetDistance
+         );
+
+         // Se o novo reset ainda estiver igual/acima do pending
+         // atual, nao mexe. Assim o pending nunca se afasta.
+         if(desired>=current)
+            continue;
+
+         if(desired<=Ask+stopLevel)
             continue;
       }
-      // SELL STOP somente acompanha para baixo.
       else
       {
-         if(desired>=currentPrice-point)
+         // Distancia atual do pending para o BID.
+         marketDistance=Bid-current;
+
+         if(marketDistance<triggerDistance)
             continue;
 
-         if(desired>=Bid-minimumDistance)
+         desired=NormalizePrice(
+            Bid-resetDistance
+         );
+
+         // O novo reset precisa ficar abaixo do pending atual.
+         if(desired<=current)
+            continue;
+
+         if(desired>=Bid-stopLevel)
             continue;
       }
+
+      int ticket=OrderTicket();
 
       ResetLastError();
 
       if(!OrderModify(
          ticket,
          desired,
-         OrderStopLoss(),
-         OrderTakeProfit(),
+         0,
+         0,
          0,
          clrNONE))
       {
          Print(
-            "SENTINEL RECOVERY TRAIL PENDING erro=",
-            GetLastError(),
-            " ticket=",
+            "SENTINEL RECOVERY TRAIL FAILED ticket=",
             ticket,
-            " marketMove=",
-            DoubleToString(marketMove/point,0)
+            " error=",
+            GetLastError(),
+            " marketDistance=",
+            DoubleToString(marketDistance/point,1),
+            " trigger=",
+            DoubleToString(InpRecoveryTrailingStep,1),
+            " reset=",
+            DoubleToString(resetPoints,1)
          );
-
-         continue;
       }
-
-      // Novo ciclo de PendingStep Trail comeca somente apos
-      // o reposicionamento confirmado.
-      SetRecoveryTrailAnchor(
-         ticket,
-         marketPrice
-      );
+      else
+      {
+         Print(
+            "SENTINEL RECOVERY TRAIL ticket=",
+            ticket,
+            " old=",
+            DoubleToString(current,Digits),
+            " new=",
+            DoubleToString(desired,Digits),
+            " marketDistance=",
+            DoubleToString(marketDistance/point,1),
+            " trigger=",
+            DoubleToString(InpRecoveryTrailingStep,1),
+            " reset=",
+            DoubleToString(resetPoints,1)
+         );
+      }
    }
 }
 
@@ -7730,10 +7748,6 @@ void DeleteRecoveryPendingOrders()
             " ticket=",
             ticket
          );
-      }
-      else
-      {
-         DeleteRecoveryTrailAnchor(ticket);
       }
    }
 }
