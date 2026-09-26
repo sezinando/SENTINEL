@@ -858,8 +858,9 @@ void CreateActionButton(
    ObjectSetInteger(0,name,OBJPROP_BGCOLOR,background);
    ObjectSetInteger(0,name,OBJPROP_BORDER_COLOR,clrDimGray);
 
-   ObjectSetInteger(0,name,OBJPROP_SELECTABLE,false);
+   ObjectSetInteger(0,name,OBJPROP_SELECTABLE,(IsTesting() || InpTestMode));
    ObjectSetInteger(0,name,OBJPROP_SELECTED,false);
+   ObjectSetInteger(0,name,OBJPROP_STATE,false);
    ObjectSetInteger(0,name,OBJPROP_HIDDEN,true);
    ObjectSetInteger(0,name,OBJPROP_ZORDER,500);
 }
@@ -1292,6 +1293,49 @@ void RenderPanel()
 }
 
 //====================================================================
+// POLLING DOS BOTOES NO STRATEGY TESTER VISUAL
+//====================================================================
+
+bool ProcessTesterSelectionButtonState(string name)
+{
+   if(ObjectFind(0,name)<0)
+      return false;
+
+   bool pressed=(bool)ObjectGetInteger(0,name,OBJPROP_STATE);
+
+   if(!pressed)
+      return false;
+
+   string ticketText=ObjectGetString(0,name,OBJPROP_TOOLTIP);
+   int ticket=(int)StringToInteger(ticketText);
+
+   ObjectSetInteger(0,name,OBJPROP_STATE,false);
+   ObjectSetInteger(0,name,OBJPROP_SELECTED,false);
+
+   if(ticket<=0)
+      return true;
+
+   ToggleSelectedTicket(ticket);
+   RenderPanel();
+   return true;
+}
+
+void PollTesterSelectionButtons()
+{
+   if(!IsTesting() || !IsVisualMode() || !InpSelectionEnabled)
+      return;
+
+   for(int i=0;i<80;i++)
+   {
+      if(ProcessTesterSelectionButtonState(PREFIX+"BTN_BUY_"+IntegerToString(i)))
+         return;
+
+      if(ProcessTesterSelectionButtonState(PREFIX+"BTN_SELL_"+IntegerToString(i)))
+         return;
+   }
+}
+
+//====================================================================
 // EVENTO DE CLIQUE
 //====================================================================
 
@@ -1508,6 +1552,7 @@ int OnCalculate(
    const long &volume[],
    const int &spread[])
 {
+   PollTesterSelectionButtons();
    RenderPanel();
 
    return rates_total;
