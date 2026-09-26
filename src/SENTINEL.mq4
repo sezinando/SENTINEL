@@ -7401,45 +7401,6 @@ double RecoveryMinimumPendingDistance()
    return MathMax(1.0,stopLevel+1.0);
 }
 
-string RecoveryTrailAnchorGlobalName(int ticket)
-{
-   return (
-      "SENTINEL_RECOVERY_TRAIL_"+
-      Symbol()+"_"+
-      IntegerToString(InpMagicNumber)+"_"+
-      IntegerToString(ticket)
-   );
-}
-
-double RecoveryTrailAnchor(int ticket,double currentMarketPrice)
-{
-   string gv=RecoveryTrailAnchorGlobalName(ticket);
-
-   if(!GlobalVariableCheck(gv))
-   {
-      GlobalVariableSet(gv,currentMarketPrice);
-      return currentMarketPrice;
-   }
-
-   return GlobalVariableGet(gv);
-}
-
-void SetRecoveryTrailAnchor(int ticket,double marketPrice)
-{
-   GlobalVariableSet(
-      RecoveryTrailAnchorGlobalName(ticket),
-      marketPrice
-   );
-}
-
-void DeleteRecoveryTrailAnchor(int ticket)
-{
-   string gv=RecoveryTrailAnchorGlobalName(ticket);
-
-   if(GlobalVariableCheck(gv))
-      GlobalVariableDel(gv);
-}
-
 bool RecoveryPlacePending(int direction)
 {
    if(!g_recoveryEnabled)
@@ -7611,14 +7572,14 @@ void RecoveryManageTrailing()
       double desired=current;
       double marketDistance=0.0;
 
-      // O reset usa o step dinamico do nivel atual da Recovery.
-      int level=
-         type==OP_BUYSTOP ?
-         RecoveryMarketCount(OP_BUY) :
-         RecoveryMarketCount(OP_SELL);
-
+      // IMPORTANTE: igual ao EAGOLD TrailAllStopOrders():
+      // o trailing da pending Recovery NAO usa o step dinamico do
+      // nivel. O reset usa sempre a distancia base RecoveryMinDistance.
+      //
+      // O multiplicador altera o preco de CRIACAO da nova Recovery,
+      // mas nao altera a distancia usada pelo PendingStepTrail.
       double resetPoints=
-         RecoveryStepForLevel(level);
+         MathMax(0.0,InpRecoveryStepDistance);
 
       if(resetPoints<=0.0)
          continue;
