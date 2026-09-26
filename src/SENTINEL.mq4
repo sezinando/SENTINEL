@@ -8106,7 +8106,7 @@ void CreateButton(
 //
 string g_testerEditLastLots    = "";
 string g_testerEditLastAutoMin = "";
-string g_testerEditLastAutoLots= "";
+
 string g_testerEditLastTarget  = "";
 string g_testerEditLastStop    = "";
 
@@ -9014,41 +9014,6 @@ void ProcessEdit(
 
       SetStatus(
          "AUTO MIN "+DoubleToString(g_autoReduceMinProfit,2),
-         UI_COLOR_ACCENT
-      );
-
-      ChartRedraw();
-      return;
-   }
-
-   //-----------------------------------------------------------------
-   // AUTO REDUCE — LOTES
-   //-----------------------------------------------------------------
-
-   if(name==OBJ_EDIT_AUTO_LOTS)
-   {
-      double value=StrToDouble(
-         ObjectGetString(0,OBJ_EDIT_AUTO_LOTS,OBJPROP_TEXT)
-      );
-
-      value=NormalizeLots(value);
-
-      if(value<=0.0)
-         value=MinLot();
-
-      g_autoReduceLots=value;
-
-      ObjectSetString(
-         0,
-         OBJ_EDIT_AUTO_LOTS,
-         OBJPROP_TEXT,
-         DoubleToString(g_autoReduceLots,2)
-      );
-
-      SavePanelSettingsToGlobals();
-
-      SetStatus(
-         "AUTO LOT "+DoubleToString(g_autoReduceLots,2),
          UI_COLOR_ACCENT
       );
 
@@ -10048,16 +10013,6 @@ void PollTesterEdits()
       }
    }
 
-   if(ObjectFind(0,OBJ_EDIT_AUTO_LOTS)>=0)
-   {
-      text=ObjectGetString(0,OBJ_EDIT_AUTO_LOTS,OBJPROP_TEXT);
-      if(text!=g_testerEditLastAutoLots)
-      {
-         g_testerEditLastAutoLots=text;
-         ProcessEdit(OBJ_EDIT_AUTO_LOTS);
-      }
-   }
-
    if(ObjectFind(0,OBJ_EDIT_TARGET)>=0)
    {
       text=ObjectGetString(0,OBJ_EDIT_TARGET,OBJPROP_TEXT);
@@ -10381,8 +10336,7 @@ void OnChartEvent(
       if(sparam==OBJ_EDIT_LOTS ||
          sparam==OBJ_EDIT_TARGET ||
          sparam==OBJ_EDIT_STOP ||
-         sparam==OBJ_EDIT_AUTO_MIN ||
-         sparam==OBJ_EDIT_AUTO_LOTS)
+         sparam==OBJ_EDIT_AUTO_MIN)
       {
          ProcessEdit(
             sparam
