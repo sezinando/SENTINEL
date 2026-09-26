@@ -1085,6 +1085,65 @@ int CalculatePanelHeight(
 }
 
 //====================================================================
+// DIAGNOSTICO DE ORDENS NO TESTER
+//====================================================================
+
+void PrintOrderDiscoveryDiagnostic()
+{
+   static datetime lastPrint=0;
+   if(!IsTesting())
+      return;
+
+   datetime now=TimeCurrent();
+   if(now==lastPrint)
+      return;
+   lastPrint=now;
+
+   int total=OrdersTotal();
+   int buy=0;
+   int sell=0;
+   int accepted=0;
+
+   Print("SENTINEL CESTA TESTER: OrdersTotal=",total,
+         " Symbol=",Symbol(),
+         " MagicFilter=",InpMagicNumber,
+         " AnyMagic=",InpAnyMagic);
+
+   for(int i=total-1;i>=0;i--)
+   {
+      if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))
+      {
+         Print("SENTINEL CESTA TESTER: OrderSelect POS=",i,
+               " falhou. Error=",GetLastError());
+         continue;
+      }
+
+      int type=OrderType();
+      if(type==OP_BUY) buy++;
+      if(type==OP_SELL) sell++;
+
+      bool market=(type==OP_BUY || type==OP_SELL);
+      bool symbolOk=(OrderSymbol()==Symbol());
+      bool magicOk=(InpAnyMagic || InpMagicNumber==-1 || OrderMagicNumber()==InpMagicNumber);
+      bool ok=(market && symbolOk && magicOk);
+
+      if(ok) accepted++;
+
+      Print("SENTINEL CESTA TESTER: ticket=",OrderTicket(),
+            " type=",type,
+            " symbol=",OrderSymbol(),
+            " magic=",OrderMagicNumber(),
+            " lots=",DoubleToString(OrderLots(),2),
+            " profit=",DoubleToString(OrderNetResult(),2),
+            " accepted=",ok);
+   }
+
+   Print("SENTINEL CESTA TESTER: SUMMARY BUY=",buy,
+         " SELL=",sell,
+         " ACCEPTED=",accepted);
+}
+
+//====================================================================
 // RENDER
 //====================================================================
 
@@ -1554,6 +1613,7 @@ int OnCalculate(
    const long &volume[],
    const int &spread[])
 {
+   PrintOrderDiscoveryDiagnostic();
    PollTesterSelectionButtons();
    RenderPanel();
 
