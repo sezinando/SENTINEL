@@ -7546,10 +7546,6 @@ void RecoveryManageTrailing()
 
       int type=OrderType();
 
-      if(type!=OP_BUYSTOP &&
-         type!=OP_SELLSTOP)
-         continue;
-
       if(!IsRecoveryComment(OrderComment()))
          continue;
 
@@ -7558,64 +7554,145 @@ void RecoveryManageTrailing()
       double currentPrice=OrderOpenPrice();
       double desired=currentPrice;
 
-      if(type==OP_BUYSTOP)
+      //==============================================================
+      // RECOVERY PENDENTE
+      //==============================================================
+      if(type==OP_BUYSTOP || type==OP_SELLSTOP)
       {
-         if(currentPrice-Ask<trailDistance)
+         if(type==OP_BUYSTOP)
+         {
+            if(currentPrice-Ask<trailDistance)
+               continue;
+
+            int buyLevel=RecoveryMarketCount(OP_BUY);
+            double buyResetDistance=
+               RecoveryStepForLevel(buyLevel)*point;
+
+            desired=Ask+buyResetDistance;
+
+            if(desired>=currentPrice)
+               continue;
+
+            if(desired<Ask+minimumDistance)
+               desired=Ask+minimumDistance;
+         }
+         else
+         {
+            if(Bid-currentPrice<trailDistance)
+               continue;
+
+            int sellLevel=RecoveryMarketCount(OP_SELL);
+            double sellResetDistance=
+               RecoveryStepForLevel(sellLevel)*point;
+
+            desired=Bid-sellResetDistance;
+
+            if(desired<=currentPrice)
+               continue;
+
+            if(desired>Bid-minimumDistance)
+               desired=Bid-minimumDistance;
+         }
+
+         desired=NormalizePrice(desired);
+
+         if(MathAbs(desired-currentPrice)<point)
             continue;
 
-         int buyLevel=RecoveryMarketCount(OP_BUY);
-         double buyResetDistance=
-            RecoveryStepForLevel(buyLevel)*point;
+         int ticket=OrderTicket();
 
-         desired=Ask+buyResetDistance;
+         ResetLastError();
 
-         if(desired>=currentPrice)
-            continue;
+         if(!OrderModify(
+            ticket,
+            desired,
+            OrderStopLoss(),
+            OrderTakeProfit(),
+            0,
+            clrNONE))
+         {
+            Print(
+               "SENTINEL RECOVERY TRAIL PENDING erro=",
+               GetLastError(),
+               " ticket=",
+               ticket
+            );
+         }
 
-         if(desired<Ask+minimumDistance)
-            desired=Ask+minimumDistance;
-      }
-      else
-      {
-         if(Bid-currentPrice<trailDistance)
-            continue;
-
-         int sellLevel=RecoveryMarketCount(OP_SELL);
-         double sellResetDistance=
-            RecoveryStepForLevel(sellLevel)*point;
-
-         desired=Bid-sellResetDistance;
-
-         if(desired<=currentPrice)
-            continue;
-
-         if(desired>Bid-minimumDistance)
-            desired=Bid-minimumDistance;
-      }
-
-      desired=NormalizePrice(desired);
-
-      if(MathAbs(desired-currentPrice)<point)
          continue;
+      }
 
-      int ticket=OrderTicket();
-
-      ResetLastError();
-
-      if(!OrderModify(
-         ticket,
-         desired,
-         OrderStopLoss(),
-         OrderTakeProfit(),
-         0,
-         clrNONE))
+      //==============================================================
+      // RECOVERY ATIVADA — TRAILING DA POSICAO
+      //==============================================================
+      if(type==OP_BUY)
       {
-         Print(
-            "SENTINEL RECOVERY TRAIL erro=",
-            GetLastError(),
-            " ticket=",
-            ticket
-         );
+         double newStop=Bid-trailDistance;
+         newStop=NormalizePrice(newStop);
+
+         // O SL somente avanca; nunca recua.
+         if(OrderStopLoss()>0.0 &&
+            newStop<=OrderStopLoss()+point)
+            continue;
+
+         // Nao colocar SL acima do BID.
+         if(newStop>=Bid)
+            continue;
+
+         ResetLastError();
+
+         if(!OrderModify(
+            OrderTicket(),
+            OrderOpenPrice(),
+            newStop,
+            OrderTakeProfit(),
+            0,
+            clrNONE))
+         {
+            Print(
+               "SENTINEL RECOVERY TRAIL BUY erro=",
+               GetLastError(),
+               " ticket=",
+               OrderTicket()
+            );
+         }
+
+         continue;
+      }
+
+      if(type==OP_SELL)
+      {
+         double newStop=Ask+trailDistance;
+         newStop=NormalizePrice(newStop);
+
+         // O SL somente avanca; nunca recua.
+         if(OrderStopLoss()>0.0 &&
+            newStop>=OrderStopLoss()-point)
+            continue;
+
+         // Nao colocar SL abaixo do ASK.
+         if(newStop<=Ask)
+            continue;
+
+         ResetLastError();
+
+         if(!OrderModify(
+            OrderTicket(),
+            OrderOpenPrice(),
+            newStop,
+            OrderTakeProfit(),
+            0,
+            clrNONE))
+         {
+            Print(
+               "SENTINEL RECOVERY TRAIL SELL erro=",
+               GetLastError(),
+               " ticket=",
+               OrderTicket()
+            );
+         }
+
+         continue;
       }
    }
 }
