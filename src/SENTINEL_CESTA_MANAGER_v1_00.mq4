@@ -408,11 +408,13 @@ bool IsSelectedMarketOrder()
    if(type!=OP_BUY && type!=OP_SELL)
       return false;
 
+   // No Strategy Tester, o CESTA MANAGER deve enxergar as ordens
+   // abertas pelo EA que esta sendo testado no mesmo grafico.
+   // O filtro de simbolo continua valido, mas o Magic pode ser
+   // deixado em -1 para aceitar qualquer Magic do backtest.
    if(OrderSymbol()!=Symbol())
       return false;
 
-   // Magic = -1 significa: aceitar todas as ordens de mercado
-   // deste simbolo, independentemente do Magic Number.
    if(!InpAnyMagic &&
       InpMagicNumber!=-1 &&
       OrderMagicNumber()!=InpMagicNumber)
