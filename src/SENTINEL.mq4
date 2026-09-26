@@ -7401,6 +7401,45 @@ double RecoveryMinimumPendingDistance()
    return MathMax(1.0,stopLevel+1.0);
 }
 
+string RecoveryTrailAnchorGlobalName(int ticket)
+{
+   return (
+      "SENTINEL_RECOVERY_TRAIL_"+
+      Symbol()+"_"+
+      IntegerToString(InpMagicNumber)+"_"+
+      IntegerToString(ticket)
+   );
+}
+
+double RecoveryTrailAnchor(int ticket,double currentMarketPrice)
+{
+   string gv=RecoveryTrailAnchorGlobalName(ticket);
+
+   if(!GlobalVariableCheck(gv))
+   {
+      GlobalVariableSet(gv,currentMarketPrice);
+      return currentMarketPrice;
+   }
+
+   return GlobalVariableGet(gv);
+}
+
+void SetRecoveryTrailAnchor(int ticket,double marketPrice)
+{
+   GlobalVariableSet(
+      RecoveryTrailAnchorGlobalName(ticket),
+      marketPrice
+   );
+}
+
+void DeleteRecoveryTrailAnchor(int ticket)
+{
+   string gv=RecoveryTrailAnchorGlobalName(ticket);
+
+   if(GlobalVariableCheck(gv))
+      GlobalVariableDel(gv);
+}
+
 bool RecoveryPlacePending(int direction)
 {
    if(!g_recoveryEnabled)
@@ -7505,6 +7544,16 @@ bool RecoveryPlacePending(int direction)
       return false;
    }
 
+   // O PendingStep Trail mede deslocamento do mercado desde o ultimo
+   // reposicionamento deste ticket, e nao a distancia entre dois
+   // precos do pending.
+   RefreshRates();
+
+   SetRecoveryTrailAnchor(
+      ticket,
+      direction==OP_BUY ? Ask : Bid
+   );
+
    SetStatus(
       direction==OP_BUY ?
       "RECOVERY BUY #"+IntegerToString(ticket) :
@@ -7547,82 +7596,102 @@ void RecoveryManageTrailing()
 
       int type=OrderType();
 
+      if(type!=OP_BUYSTOP && type!=OP_SELLSTOP)
+         continue;
+
       if(!IsRecoveryComment(OrderComment()))
          continue;
 
+      int ticket=OrderTicket();
+
       RefreshRates();
 
+      double marketPrice=
+         type==OP_BUYSTOP ? Ask : Bid;
+
+      double anchor=
+         RecoveryTrailAnchor(
+            ticket,
+            marketPrice
+         );
+
+      // PendingStep Trail = deslocamento minimo do mercado desde
+      // o ultimo reposicionamento deste pending.
+      double marketMove=
+         type==OP_BUYSTOP ?
+         marketPrice-anchor :
+         anchor-marketPrice;
+
+      if(marketMove<trailDistance)
+         continue;
+
+      int level=
+         type==OP_BUYSTOP ?
+         RecoveryMarketCount(OP_BUY) :
+         RecoveryMarketCount(OP_SELL);
+
+      double resetDistance=
+         RecoveryStepForLevel(level)*point;
+
+      if(resetDistance<minimumDistance)
+         resetDistance=minimumDistance;
+
+      double desired=
+         type==OP_BUYSTOP ?
+         marketPrice+resetDistance :
+         marketPrice-resetDistance;
+
+      desired=NormalizePrice(desired);
+
       double currentPrice=OrderOpenPrice();
-      double desired=currentPrice;
 
-      //==============================================================
-      // RECOVERY PENDENTE
-      //==============================================================
-      if(type==OP_BUYSTOP || type==OP_SELLSTOP)
+      // BUY STOP somente acompanha para cima.
+      if(type==OP_BUYSTOP)
       {
-         if(type==OP_BUYSTOP)
-         {
-            if(currentPrice-Ask<trailDistance)
-               continue;
-
-            int buyLevel=RecoveryMarketCount(OP_BUY);
-            double buyResetDistance=
-               RecoveryStepForLevel(buyLevel)*point;
-
-            desired=Ask+buyResetDistance;
-
-            if(desired<=currentPrice)
-               continue;
-
-            if(desired<Ask+minimumDistance)
-               desired=Ask+minimumDistance;
-         }
-         else
-         {
-            if(Bid-currentPrice<trailDistance)
-               continue;
-
-            int sellLevel=RecoveryMarketCount(OP_SELL);
-            double sellResetDistance=
-               RecoveryStepForLevel(sellLevel)*point;
-
-            desired=Bid-sellResetDistance;
-
-            if(desired>=currentPrice)
-               continue;
-
-            if(desired>Bid-minimumDistance)
-               desired=Bid-minimumDistance;
-         }
-
-         desired=NormalizePrice(desired);
-
-         if(MathAbs(desired-currentPrice)<point)
+         if(desired<=currentPrice+point)
             continue;
 
-         int ticket=OrderTicket();
+         if(desired<=Ask+minimumDistance)
+            continue;
+      }
+      // SELL STOP somente acompanha para baixo.
+      else
+      {
+         if(desired>=currentPrice-point)
+            continue;
 
-         ResetLastError();
+         if(desired>=Bid-minimumDistance)
+            continue;
+      }
 
-         if(!OrderModify(
+      ResetLastError();
+
+      if(!OrderModify(
+         ticket,
+         desired,
+         OrderStopLoss(),
+         OrderTakeProfit(),
+         0,
+         clrNONE))
+      {
+         Print(
+            "SENTINEL RECOVERY TRAIL PENDING erro=",
+            GetLastError(),
+            " ticket=",
             ticket,
-            desired,
-            OrderStopLoss(),
-            OrderTakeProfit(),
-            0,
-            clrNONE))
-         {
-            Print(
-               "SENTINEL RECOVERY TRAIL PENDING erro=",
-               GetLastError(),
-               " ticket=",
-               ticket
-            );
-         }
+            " marketMove=",
+            DoubleToString(marketMove/point,0)
+         );
 
          continue;
       }
 
+      // Novo ciclo de PendingStep Trail comeca somente apos
+      // o reposicionamento confirmado.
+      SetRecoveryTrailAnchor(
+         ticket,
+         marketPrice
+      );
    }
 }
 
@@ -7661,6 +7730,10 @@ void DeleteRecoveryPendingOrders()
             " ticket=",
             ticket
          );
+      }
+      else
+      {
+         DeleteRecoveryTrailAnchor(ticket);
       }
    }
 }
