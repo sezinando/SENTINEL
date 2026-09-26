@@ -1284,6 +1284,11 @@ input color InpStopColor      = clrRed;
 #define OBJ_BTN_LOTS_PLUS_1    PREFIX+"BTN_LOTS_PLUS_1"
 #define OBJ_BTN_LOTS_PLUS_10   PREFIX+"BTN_LOTS_PLUS_10"
 
+#define OBJ_BTN_AUTO_MIN_MINUS_10 PREFIX+"BTN_AUTO_MIN_MINUS_10"
+#define OBJ_BTN_AUTO_MIN_MINUS_1  PREFIX+"BTN_AUTO_MIN_MINUS_1"
+#define OBJ_BTN_AUTO_MIN_PLUS_1   PREFIX+"BTN_AUTO_MIN_PLUS_1"
+#define OBJ_BTN_AUTO_MIN_PLUS_10  PREFIX+"BTN_AUTO_MIN_PLUS_10"
+
 #define OBJ_EDIT_TARGET        PREFIX+"EDIT_TARGET"
 #define OBJ_EDIT_STOP          PREFIX+"EDIT_STOP"
 
@@ -1317,7 +1322,6 @@ input color InpStopColor      = clrRed;
 #define OBJ_BTN_CLEAR_SELECTED PREFIX+"BTN_CLEAR_SELECTED"
 #define OBJ_BTN_AUTO_REDUCE      PREFIX+"BTN_AUTO_REDUCE"
 #define OBJ_EDIT_AUTO_MIN        PREFIX+"EDIT_AUTO_MIN"
-#define OBJ_EDIT_AUTO_LOTS       PREFIX+"EDIT_AUTO_LOTS"
 #define OBJ_LBL_GROUP_TITLE    PREFIX+"LBL_GROUP_TITLE"
 #define OBJ_LBL_GROUP_TARGET   PREFIX+"LBL_GROUP_TARGET"
 #define OBJ_LBL_GROUP_REFERENCE PREFIX+"LBL_GROUP_REFERENCE"
@@ -8355,12 +8359,24 @@ void BuildInterface()
    CreateLabel(OBJ_LBL_SELECTED_1,"T1 --",margin,202,8,UI_COLOR_TEXT_MUTED);
    CreateLabel(OBJ_LBL_SELECTED_2,"T2 --",margin+145,202,8,UI_COLOR_TEXT_MUTED);
 
-   // Parametros do AUTO REDUCE
-   CreateLabel(PREFIX+"LBL_AUTO_MIN","MIN",margin,220,7,UI_COLOR_TEXT_MUTED);
-   CreateEdit(OBJ_EDIT_AUTO_MIN,DoubleToString(g_autoReduceMinProfit,2),margin+20,217,48,18);
+   // Parametro MIN do AUTO REDUCE.
+   // O valor fica centralizado com os mesmos quatro botoes usados
+   // pelo controle de LOT.
+   int minGap=4;
+   int minBtnW=42;
+   int minEditW=64;
+   int minTotalW=(minBtnW*4)+minEditW+(minGap*4);
+   int minX=margin+(contentW-minTotalW)/2;
 
-   CreateLabel(PREFIX+"LBL_AUTO_LOTS","LOT",margin+78,220,7,UI_COLOR_TEXT_MUTED);
-   CreateEdit(OBJ_EDIT_AUTO_LOTS,DoubleToString(g_autoReduceLots,2),margin+98,217,48,18);
+   CreateButton(OBJ_BTN_AUTO_MIN_MINUS_10,"-10.0",minX,217,minBtnW,18,UI_COLOR_NEUTRAL);
+   minX+=minBtnW+minGap;
+   CreateButton(OBJ_BTN_AUTO_MIN_MINUS_1,"-1.0",minX,217,minBtnW,18,UI_COLOR_NEUTRAL);
+   minX+=minBtnW+minGap;
+   CreateEdit(OBJ_EDIT_AUTO_MIN,DoubleToString(g_autoReduceMinProfit,2),minX,217,minEditW,18);
+   minX+=minEditW+minGap;
+   CreateButton(OBJ_BTN_AUTO_MIN_PLUS_1,"+1.0",minX,217,minBtnW,18,UI_COLOR_NEUTRAL);
+   minX+=minBtnW+minGap;
+   CreateButton(OBJ_BTN_AUTO_MIN_PLUS_10,"+10.0",minX,217,minBtnW,18,UI_COLOR_NEUTRAL);
 
    // LOSS / WIN
    // LOSS / WIN: cor representa estado, nao simplesmente o lado da ordem.
@@ -9265,6 +9281,32 @@ void AdjustLotsByAmount(double amount)
    ChartRedraw();
 }
 
+void AdjustAutoReduceMinByAmount(double amount)
+{
+   double value=g_autoReduceMinProfit+amount;
+
+   if(value<0.0)
+      value=0.0;
+
+   g_autoReduceMinProfit=NormalizeDouble(value,2);
+
+   ObjectSetString(
+      0,
+      OBJ_EDIT_AUTO_MIN,
+      OBJPROP_TEXT,
+      DoubleToString(g_autoReduceMinProfit,2)
+   );
+
+   SavePanelSettingsToGlobals();
+
+   SetStatus(
+      "MIN "+DoubleToString(g_autoReduceMinProfit,2),
+      UI_COLOR_ACCENT
+   );
+
+   ChartRedraw();
+}
+
 void AdjustLotsByStep(double multiplier)
 {
    double step=LotStep();
@@ -9314,6 +9356,30 @@ void ProcessButton(
    //-----------------------------------------------------------------
    // AUTO REDUCE
    //-----------------------------------------------------------------
+
+   if(name==OBJ_BTN_AUTO_MIN_MINUS_10)
+   {
+      AdjustAutoReduceMinByAmount(-10.0);
+      return;
+   }
+
+   if(name==OBJ_BTN_AUTO_MIN_MINUS_1)
+   {
+      AdjustAutoReduceMinByAmount(-1.0);
+      return;
+   }
+
+   if(name==OBJ_BTN_AUTO_MIN_PLUS_1)
+   {
+      AdjustAutoReduceMinByAmount(1.0);
+      return;
+   }
+
+   if(name==OBJ_BTN_AUTO_MIN_PLUS_10)
+   {
+      AdjustAutoReduceMinByAmount(10.0);
+      return;
+   }
 
    if(name==OBJ_BTN_AUTO_REDUCE)
    {
@@ -9582,6 +9648,11 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_BTN_LOTS_PLUS_1);
    DeleteObjectSafe(OBJ_BTN_LOTS_PLUS_10);
 
+   DeleteObjectSafe(OBJ_BTN_AUTO_MIN_MINUS_10);
+   DeleteObjectSafe(OBJ_BTN_AUTO_MIN_MINUS_1);
+   DeleteObjectSafe(OBJ_BTN_AUTO_MIN_PLUS_1);
+   DeleteObjectSafe(OBJ_BTN_AUTO_MIN_PLUS_10);
+
    DeleteObjectSafe(OBJ_EDIT_TARGET);
    DeleteObjectSafe(OBJ_EDIT_STOP);
 
@@ -9599,7 +9670,6 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_BTN_CLEAR_SELECTED);
    DeleteObjectSafe(OBJ_BTN_AUTO_REDUCE);
    DeleteObjectSafe(OBJ_EDIT_AUTO_MIN);
-   DeleteObjectSafe(OBJ_EDIT_AUTO_LOTS);
    DeleteObjectSafe(PREFIX+"LBL_AUTO_MIN");
    DeleteObjectSafe(PREFIX+"LBL_AUTO_LOTS");
    DeleteObjectSafe(OBJ_LBL_GROUP_TITLE);
@@ -9794,6 +9864,11 @@ int OnInit()
    MakeButtonNonSelectable(OBJ_BTN_LOTS_PLUS_1);
    MakeButtonNonSelectable(OBJ_BTN_LOTS_PLUS_10);
 
+   MakeButtonNonSelectable(OBJ_BTN_AUTO_MIN_MINUS_10);
+   MakeButtonNonSelectable(OBJ_BTN_AUTO_MIN_MINUS_1);
+   MakeButtonNonSelectable(OBJ_BTN_AUTO_MIN_PLUS_1);
+   MakeButtonNonSelectable(OBJ_BTN_AUTO_MIN_PLUS_10);
+
    MakeButtonNonSelectable(OBJ_BTN_TARGET_MINUS);
    MakeButtonNonSelectable(OBJ_BTN_TARGET_PLUS);
    MakeButtonNonSelectable(OBJ_BTN_STOP_MINUS);
@@ -9917,6 +9992,11 @@ void PollTesterButtons()
    if(ProcessTesterButtonState(OBJ_BTN_LOTS_MINUS_1)) return;
    if(ProcessTesterButtonState(OBJ_BTN_LOTS_PLUS_1)) return;
    if(ProcessTesterButtonState(OBJ_BTN_LOTS_PLUS_10)) return;
+
+   if(ProcessTesterButtonState(OBJ_BTN_AUTO_MIN_MINUS_10)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_AUTO_MIN_MINUS_1)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_AUTO_MIN_PLUS_1)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_AUTO_MIN_PLUS_10)) return;
 
    if(ProcessTesterButtonState(OBJ_BTN_TARGET_MINUS)) return;
    if(ProcessTesterButtonState(OBJ_BTN_TARGET_PLUS)) return;
