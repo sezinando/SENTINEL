@@ -190,10 +190,11 @@ bool ReconcileSelection()
    {
       bool valid1=false;
 
+      if(IsTesting())
+         valid1=IsTesterBridgeTicketOpen(t1);
+      else
       if(OrderSelect(t1,SELECT_BY_TICKET,MODE_TRADES))
-      {
          valid1=IsSelectedMarketOrder();
-      }
 
       if(!valid1)
       {
@@ -208,10 +209,11 @@ bool ReconcileSelection()
    {
       bool valid2=false;
 
+      if(IsTesting())
+         valid2=IsTesterBridgeTicketOpen(t2);
+      else
       if(OrderSelect(t2,SELECT_BY_TICKET,MODE_TRADES))
-      {
          valid2=IsSelectedMarketOrder();
-      }
 
       if(!valid2)
       {
@@ -224,6 +226,9 @@ bool ReconcileSelection()
    if((IsTesting() || InpTestMode) && t3>0)
    {
       bool valid3=false;
+      if(IsTesting())
+         valid3=IsTesterBridgeTicketOpen(t3);
+      else
       if(OrderSelect(t3,SELECT_BY_TICKET,MODE_TRADES))
          valid3=IsSelectedMarketOrder();
 
@@ -385,6 +390,76 @@ struct WinningOrder
    double   currentPrice;
    datetime openTime;
 };
+
+//====================================================================
+// PONTE TESTER - ORDENS PUBLICADAS PELO SENTINEL
+//====================================================================
+
+string TesterOrderBridgePrefix()
+{
+   return "SENTINEL_TEST_ORDER_"+Symbol()+"_";
+}
+
+int TesterBridgeCount()
+{
+   string name=TesterOrderBridgePrefix()+"COUNT";
+   if(!GlobalVariableCheck(name))
+      return 0;
+
+   int count=(int)GlobalVariableGet(name);
+   if(count<0) count=0;
+   if(count>100) count=100;
+   return count;
+}
+
+bool GetTesterBridgeOrder(
+   int index,
+   int &ticket,
+   int &type,
+   int &magic,
+   double &lots,
+   double &result,
+   double &openPrice,
+   datetime &openTime)
+{
+   string base=TesterOrderBridgePrefix()+IntegerToString(index)+"_";
+
+   if(!GlobalVariableCheck(base+"ACTIVE") ||
+      GlobalVariableGet(base+"ACTIVE")<0.5)
+      return false;
+
+   ticket=(int)GlobalVariableGet(base+"TICKET");
+   type=(int)GlobalVariableGet(base+"TYPE");
+   magic=(int)GlobalVariableGet(base+"MAGIC");
+   lots=GlobalVariableGet(base+"LOTS");
+   result=GlobalVariableGet(base+"RESULT");
+   openPrice=GlobalVariableGet(base+"OPENPRICE");
+   openTime=(datetime)GlobalVariableGet(base+"OPENTIME");
+
+   return (ticket>0 && (type==OP_BUY || type==OP_SELL));
+}
+
+bool IsTesterBridgeTicketOpen(int ticket)
+{
+   if(ticket<=0)
+      return false;
+
+   int count=TesterBridgeCount();
+   for(int i=0;i<count;i++)
+   {
+      int t=0,type=0,magic=0;
+      double lots=0.0,result=0.0,openPrice=0.0;
+      datetime openTime=0;
+
+      if(!GetTesterBridgeOrder(i,t,type,magic,lots,result,openPrice,openTime))
+         continue;
+
+      if(t==ticket)
+         return true;
+   }
+
+   return false;
+}
 
 //====================================================================
 // UTILITARIOS
@@ -921,6 +996,41 @@ int CollectWinningOrders(
    bool winnersOnly)
 {
    ArrayResize(wins,0);
+
+   if(IsTesting())
+   {
+      int bridgeCount=TesterBridgeCount();
+
+      for(int b=0;b<bridgeCount;b++)
+      {
+         int ticket=0,type=0,magic=0;
+         double lots=0.0,result=0.0,openPrice=0.0;
+         datetime openTime=0;
+
+         if(!GetTesterBridgeOrder(b,ticket,type,magic,lots,result,openPrice,openTime))
+            continue;
+
+         if(!InpAnyMagic &&
+            InpMagicNumber!=-1 &&
+            magic!=InpMagicNumber)
+            continue;
+
+         if(winnersOnly && result<=0.00000001)
+            continue;
+
+         int n=ArraySize(wins);
+         ArrayResize(wins,n+1);
+         wins[n].ticket=ticket;
+         wins[n].type=type;
+         wins[n].lots=lots;
+         wins[n].result=result;
+         wins[n].openTime=openTime;
+         wins[n].openPrice=openPrice;
+         wins[n].currentPrice=(type==OP_BUY) ? Bid : Ask;
+      }
+
+      return ArraySize(wins);
+   }
 
    int total=OrdersTotal();
 
