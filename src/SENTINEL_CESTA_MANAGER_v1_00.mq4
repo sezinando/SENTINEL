@@ -569,13 +569,17 @@ string LotsText(double lots)
 {
    double step=MarketInfo(Symbol(),MODE_LOTSTEP);
 
+   // A quantidade exibida deve preservar a precisao da ordem real.
+   // Nao podemos reduzir 0.21 para 0.2 apenas porque o LOTSTEP
+   // informado pelo broker e 0.10.
+   //
+   // Mantemos no minimo 2 casas decimais para a interface da cesta.
+   // Se o broker trabalhar com passo menor que 0.01, preservamos
+   // tambem a precisao necessaria para esses lotes.
    int digits=2;
 
    if(step>=1.0)
-      digits=0;
-   else
-   if(step>=0.1)
-      digits=1;
+      digits=2;
    else
    if(step>=0.01)
       digits=2;
