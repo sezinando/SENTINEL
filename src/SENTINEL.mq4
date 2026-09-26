@@ -2718,7 +2718,11 @@ void EvaluateAutoReduce()
       if(ok)
       {
          g_autoReduceExecuted=true;
-         SetStatus("AUTO REDUCE EXECUTADO",InpProfitColor);
+         SetStatus(
+         "AUTO REDUCE EXECUTADO "+
+         DoubleToString(requestedLots,2),
+         InpProfitColor
+      );
       }
       else
       {
@@ -2748,26 +2752,27 @@ void EvaluateAutoReduce()
          );
    }
 
-   double autoLots=
+   // Todas as reducoes devem respeitar exclusivamente o lote
+   // definido no campo SENTINEL_EDIT_LOTS.
+   //
+   // AUTO REDUCE controla apenas a automatizacao da decisao;
+   // nao possui mais um lote de execucao independente.
+   double requestedLots=
       NormalizeLots(
          MathMin(
-            g_autoReduceLots,
+            g_selectedLots,
             autoAvailableLots
          )
       );
 
-   if(autoLots<=0.0)
+   if(requestedLots<=0.0)
       return;
-
-   double manualLots=g_selectedLots;
-   g_selectedLots=autoLots;
 
    g_processing=true;
 
    bool okLegacy=ExecuteSelectedReduction();
 
    g_processing=false;
-   g_selectedLots=manualLots;
 
    if(okLegacy)
    {
