@@ -8198,6 +8198,9 @@ void CreateEdit(
       8
    );
 
+   // Campos OBJ_EDIT precisam permanecer explicitamente editaveis.
+   // Em especial no Strategy Tester Visual, deixar READONLY/STATE
+   // implicitos pode impedir a entrada de texto mesmo com SELECTABLE=true.
    ObjectSetInteger(
       0,
       name,
@@ -8208,15 +8211,44 @@ void CreateEdit(
    ObjectSetInteger(
       0,
       name,
-      OBJPROP_BACK,
+      OBJPROP_SELECTED,
       false
    );
 
    ObjectSetInteger(
       0,
       name,
+      OBJPROP_READONLY,
+      false
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_STATE,
+      false
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_BACK,
+      false
+   );
+
+   // Campos de edicao ficam acima do painel, cards e demais objetos.
+   ObjectSetInteger(
+      0,
+      name,
       OBJPROP_ZORDER,
-      1003
+      10000
+   );
+
+   ObjectSetInteger(
+      0,
+      name,
+      OBJPROP_HIDDEN,
+      false
    );
 
    ObjectSetString(
