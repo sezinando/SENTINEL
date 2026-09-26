@@ -7252,6 +7252,7 @@ string BuildOrderComment(bool isRed)
 //
 // Usa a ULTIMA ordem MARKET aberta do lado como referencia.
 // Sem FirstStep: o gatilho e medido diretamente contra essa ultima ordem.
+// A nova Recovery exige TriggerDistance + SmartGrid (step do nivel).
 //
 // Ao atingir o gatilho:
 // BUY  -> BUYSTOP acima do ASK
@@ -7406,6 +7407,7 @@ double RecoveryNextLot(double previousLots)
 bool RecoveryTriggerReached(
    int direction,
    double referencePrice,
+   double requiredDistance,
    double &adversePoints)
 {
    adversePoints=0.0;
@@ -7424,7 +7426,7 @@ bool RecoveryTriggerReached(
 
    return (
       adversePoints+0.00000001>=
-      MathMax(0.0,InpRecoveryTriggerDistance)
+      MathMax(0.0,requiredDistance)
    );
 }
 
@@ -7456,17 +7458,27 @@ bool RecoveryPlacePending(int direction)
       referenceTime))
       return false;
 
+   int level=RecoveryMarketCount(direction);
+
+   // A nova Recovery somente e liberada depois de atravessar:
+   //   TriggerDistance + SmartGrid (step do nivel atual).
+   //
+   // Isso garante que a nova pendente fique alem da ultima ordem
+   // ativada, evitando sobreposicao da escada de Recovery.
+   double step=RecoveryStepForLevel(level);
+   double requiredDistance=
+      MathMax(0.0,InpRecoveryTriggerDistance)+
+      MathMax(0.0,step);
+
    double adversePoints=0.0;
 
    if(!RecoveryTriggerReached(
       direction,
       referencePrice,
+      requiredDistance,
       adversePoints))
       return false;
 
-   int level=RecoveryMarketCount(direction);
-
-   double step=RecoveryStepForLevel(level);
    double lot=RecoveryNextLot(referenceLots);
 
    if(step<=0.0 || lot<=0.0)
@@ -7789,7 +7801,13 @@ void UpdateRecoveryTelemetry()
       OP_BUY,buyTicket,buyLots,buyPrice,buyTime))
    {
       double adverse=0.0;
-      RecoveryTriggerReached(OP_BUY,buyPrice,adverse);
+      RecoveryTriggerReached(
+         OP_BUY,
+         buyPrice,
+         MathMax(0.0,InpRecoveryTriggerDistance)+
+         MathMax(0.0,RecoveryStepForLevel(RecoveryMarketCount(OP_BUY))),
+         adverse
+      );
 
       text+="\nBUY L"+
          IntegerToString(RecoveryMarketCount(OP_BUY))+
@@ -7797,6 +7815,9 @@ void UpdateRecoveryTelemetry()
          " | REF "+DoubleToString(buyPrice,Digits)+
          " | STEP "+DoubleToString(
             RecoveryStepForLevel(RecoveryMarketCount(OP_BUY)),0)+
+         " | REQ "+DoubleToString(
+            MathMax(0.0,InpRecoveryTriggerDistance)+
+            MathMax(0.0,RecoveryStepForLevel(RecoveryMarketCount(OP_BUY))),0)+
          " | ADV "+DoubleToString(adverse,0);
 
       int pending=RecoveryPendingTicket(OP_BUY);
@@ -7810,7 +7831,13 @@ void UpdateRecoveryTelemetry()
       OP_SELL,sellTicket,sellLots,sellPrice,sellTime))
    {
       double adverse=0.0;
-      RecoveryTriggerReached(OP_SELL,sellPrice,adverse);
+      RecoveryTriggerReached(
+         OP_SELL,
+         sellPrice,
+         MathMax(0.0,InpRecoveryTriggerDistance)+
+         MathMax(0.0,RecoveryStepForLevel(RecoveryMarketCount(OP_SELL))),
+         adverse
+      );
 
       text+="\nSELL L"+
          IntegerToString(RecoveryMarketCount(OP_SELL))+
@@ -7818,6 +7845,9 @@ void UpdateRecoveryTelemetry()
          " | REF "+DoubleToString(sellPrice,Digits)+
          " | STEP "+DoubleToString(
             RecoveryStepForLevel(RecoveryMarketCount(OP_SELL)),0)+
+         " | REQ "+DoubleToString(
+            MathMax(0.0,InpRecoveryTriggerDistance)+
+            MathMax(0.0,RecoveryStepForLevel(RecoveryMarketCount(OP_SELL))),0)+
          " | ADV "+DoubleToString(adverse,0);
 
       int pending=RecoveryPendingTicket(OP_SELL);
