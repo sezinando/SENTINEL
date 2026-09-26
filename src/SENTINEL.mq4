@@ -2723,10 +2723,10 @@ void EvaluateAutoReduce()
       {
          g_autoReduceExecuted=true;
          SetStatus(
-         "AUTO REDUCE EXECUTADO "+
-         DoubleToString(requestedLots,2),
-         InpProfitColor
-      );
+            "AUTO REDUCE EXECUTADO "+
+            DoubleToString(g_selectedLots,2),
+            InpProfitColor
+         );
       }
       else
       {
