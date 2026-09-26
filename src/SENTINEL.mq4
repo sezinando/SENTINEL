@@ -174,6 +174,21 @@ input double   InpLevelStepXAUUSD  = 2000.0;
 input double   InpLevelStepBTCUSD  = 2000.0;
 
 //====================================================================
+// RECOVERY / TRAILING
+//====================================================================
+// Recovery uses the LAST MARKET ORDER of each direction as reference.
+// No FirstStep is used here. Distances are in symbol points.
+input double   InpRecoveryTriggerDistance = 280.0;
+input double   InpRecoveryStepDistance    = 340.0;
+input double   InpRecoveryStepMultiplier  = 1.15;
+input double   InpRecoveryStepMax         = 500.0;
+input double   InpRecoveryLotMultiplier   = 1.10;
+input double   InpRecoveryLotIncrement    = 0.02;
+input double   InpRecoveryMaxLot          = 3.00;
+input bool     InpRecoveryTrailingDefault = true;
+input double   InpRecoveryTrailingStep   = 50.0;
+
+//====================================================================
 // PASSO DOS NIVEIS POR ATIVO
 //====================================================================
 
@@ -1321,6 +1336,8 @@ input color InpStopColor      = clrRed;
 #define OBJ_BTN_REDUCE_SELECTED PREFIX+"BTN_REDUCE_SELECTED"
 #define OBJ_BTN_CLEAR_SELECTED PREFIX+"BTN_CLEAR_SELECTED"
 #define OBJ_BTN_AUTO_REDUCE      PREFIX+"BTN_AUTO_REDUCE"
+#define OBJ_BTN_RECOVERY          PREFIX+"BTN_RECOVERY"
+#define OBJ_LBL_RECOVERY_TELEMETRY PREFIX+"LBL_RECOVERY_TELEMETRY"
 #define OBJ_EDIT_AUTO_MIN        PREFIX+"EDIT_AUTO_MIN"
 #define OBJ_LBL_GROUP_TITLE    PREFIX+"LBL_GROUP_TITLE"
 #define OBJ_LBL_GROUP_TARGET   PREFIX+"LBL_GROUP_TARGET"
@@ -1379,6 +1396,9 @@ input color InpStopColor      = clrRed;
 //====================================================================
 
 double g_targetMoney = 0.0;   // resultado estimado no nivel, apenas informativo
+
+bool g_recoveryEnabled = false;
+bool g_recoveryTrailingEnabled = true;
 double g_stopMoney   = 0.0;   // resultado estimado no nivel, apenas informativo
 
 // Lote selecionado no painel. Persistido por simbolo + magic para
@@ -3191,6 +3211,15 @@ string AutoReduceLotsGlobalName()
           IntegerToString(InpMagicNumber);
 }
 
+string RecoveryEnabledGlobalName()
+{
+   return PREFIX+
+          "RECOVERY_ENABLED_"+
+          Symbol()+
+          "_"+
+          IntegerToString(InpMagicNumber);
+}
+
 //====================================================================
 // PERSISTENCIA DOS PARAMETROS DO PAINEL
 //
@@ -3243,6 +3272,11 @@ void SavePanelSettingsToGlobals()
       AutoReduceLotsGlobalName(),
       g_autoReduceLots
    );
+
+   GlobalVariableSet(
+      RecoveryEnabledGlobalName(),
+      g_recoveryEnabled ? 1.0 : 0.0
+   );
 }
 
 void LoadPanelSettingsFromGlobals()
@@ -3290,6 +3324,8 @@ void LoadPanelSettingsFromGlobals()
    g_autoReduceEnabled=InpAutoReduceDefault;
    g_autoReduceMinProfit=MathMax(0.0,InpAutoReduceMinProfit);
    g_autoReduceLots=NormalizeLots(InpAutoReduceLots);
+   g_recoveryEnabled=false;
+   g_recoveryTrailingEnabled=InpRecoveryTrailingDefault;
 
    string autoGV=AutoReduceEnabledGlobalName();
    string minGV=AutoReduceMinProfitGlobalName();
@@ -3310,6 +3346,11 @@ void LoadPanelSettingsFromGlobals()
 
    if(g_autoReduceLots<=0.0)
       g_autoReduceLots=MinLot();
+
+   string recoveryGV=RecoveryEnabledGlobalName();
+
+   if(GlobalVariableCheck(recoveryGV))
+      g_recoveryEnabled=(GlobalVariableGet(recoveryGV)>0.5);
 }
 
 void SaveLevelPointsToGlobals()
@@ -3714,6 +3755,8 @@ void EndBasketIfNeeded()
 {
    if(CountOpenPositions()>0)
       return;
+
+   DeleteRecoveryPendingOrders();
 
    if(!g_basketActive)
       return;
@@ -6433,6 +6476,8 @@ bool CloseAllPositions()
 {
    bool success=true;
 
+   DeleteRecoveryPendingOrders();
+
    for(int pass=0;
        pass<3;
        pass++)
@@ -7164,6 +7209,552 @@ string BuildOrderComment(bool isRed)
       return "SENTINEL";
 
    return baseComment;
+}
+
+
+//====================================================================
+// RECOVERY ENGINE
+//====================================================================
+//
+// Usa a ULTIMA ordem MARKET aberta do lado como referencia.
+// Sem FirstStep: o gatilho e medido diretamente contra essa ultima ordem.
+//
+// Ao atingir o gatilho:
+// BUY  -> BUYSTOP acima do ASK
+// SELL -> SELLSTOP abaixo do BID
+//
+// O step cresce por nivel e multiplicador, limitado por StepMax.
+// O lote progride a partir do lote da ultima ordem, limitado por MaxLot.
+//
+// Trailing atua sobre as pendencias Recovery:
+// quando a pendencia se distancia do preco corrente pelo menos
+// RecoveryTrailingStep, ela e reposicionada para o step dinamico atual.
+//====================================================================
+
+string RecoveryComment(int direction)
+{
+   if(direction==OP_BUY)
+      return InpOrderComment+" RECOVERY BUY";
+
+   return InpOrderComment+" RECOVERY SELL";
+}
+
+bool IsRecoveryComment(string comment)
+{
+   return (
+      StringFind(comment,"RECOVERY BUY",0)>=0 ||
+      StringFind(comment,"RECOVERY SELL",0)>=0
+   );
+}
+
+double RecoveryStepForLevel(int level)
+{
+   double base=MathMax(0.0,InpRecoveryStepDistance);
+   double mult=MathMax(1.0,InpRecoveryStepMultiplier);
+   double cap=MathMax(base,InpRecoveryStepMax);
+
+   if(base<=0.0)
+      return 0.0;
+
+   if(level<1)
+      level=1;
+
+   double step=base*MathPow(mult,level-1);
+
+   if(step>cap)
+      step=cap;
+
+   return step;
+}
+
+int RecoveryMarketCount(int direction)
+{
+   int count=0;
+
+   for(int i=OrdersTotal()-1;i>=0;i--)
+   {
+      if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))
+         continue;
+
+      if(!IsOurOrder())
+         continue;
+
+      if(OrderType()!=direction)
+         continue;
+
+      count++;
+   }
+
+   return count;
+}
+
+bool RecoveryLastMarketOrder(
+   int direction,
+   int &ticket,
+   double &lots,
+   double &price,
+   datetime &openTime)
+{
+   ticket=-1;
+   lots=0.0;
+   price=0.0;
+   openTime=0;
+
+   for(int i=OrdersTotal()-1;i>=0;i--)
+   {
+      if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))
+         continue;
+
+      if(!IsOurOrder())
+         continue;
+
+      if(OrderType()!=direction)
+         continue;
+
+      if(ticket<0 ||
+         OrderOpenTime()>openTime ||
+         (OrderOpenTime()==openTime && OrderTicket()>ticket))
+      {
+         ticket=OrderTicket();
+         lots=OrderLots();
+         price=OrderOpenPrice();
+         openTime=OrderOpenTime();
+      }
+   }
+
+   return (ticket>0);
+}
+
+int RecoveryPendingTicket(int direction)
+{
+   int pendingType=
+      direction==OP_BUY ? OP_BUYSTOP : OP_SELLSTOP;
+
+   for(int i=OrdersTotal()-1;i>=0;i--)
+   {
+      if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))
+         continue;
+
+      if(OrderSymbol()!=Symbol())
+         continue;
+
+      if(InpMagicNumber!=-1 &&
+         OrderMagicNumber()!=InpMagicNumber)
+         continue;
+
+      if(OrderType()!=pendingType)
+         continue;
+
+      if(!IsRecoveryComment(OrderComment()))
+         continue;
+
+      return OrderTicket();
+   }
+
+   return -1;
+}
+
+double RecoveryNextLot(double previousLots)
+{
+   double lot=
+      previousLots*MathMax(1.0,InpRecoveryLotMultiplier)+
+      MathMax(0.0,InpRecoveryLotIncrement);
+
+   double cap=MathMax(0.0,InpRecoveryMaxLot);
+
+   if(cap>0.0 && lot>cap)
+      lot=cap;
+
+   return NormalizeLots(lot);
+}
+
+bool RecoveryTriggerReached(
+   int direction,
+   double referencePrice,
+   double &adversePoints)
+{
+   adversePoints=0.0;
+
+   double point=AssetPoint();
+
+   if(point<=0.0 || referencePrice<=0.0)
+      return false;
+
+   RefreshRates();
+
+   if(direction==OP_BUY)
+      adversePoints=(referencePrice-Ask)/point;
+   else
+      adversePoints=(Bid-referencePrice)/point;
+
+   return (
+      adversePoints+0.00000001>=
+      MathMax(0.0,InpRecoveryTriggerDistance)
+   );
+}
+
+double RecoveryMinimumPendingDistance()
+{
+   double stopLevel=MarketInfo(Symbol(),MODE_STOPLEVEL);
+
+   return MathMax(1.0,stopLevel+1.0);
+}
+
+bool RecoveryPlacePending(int direction)
+{
+   if(!g_recoveryEnabled)
+      return false;
+
+   if(RecoveryPendingTicket(direction)>0)
+      return false;
+
+   int referenceTicket=-1;
+   double referenceLots=0.0;
+   double referencePrice=0.0;
+   datetime referenceTime=0;
+
+   if(!RecoveryLastMarketOrder(
+      direction,
+      referenceTicket,
+      referenceLots,
+      referencePrice,
+      referenceTime))
+      return false;
+
+   double adversePoints=0.0;
+
+   if(!RecoveryTriggerReached(
+      direction,
+      referencePrice,
+      adversePoints))
+      return false;
+
+   int level=RecoveryMarketCount(direction);
+
+   double step=RecoveryStepForLevel(level);
+   double lot=RecoveryNextLot(referenceLots);
+
+   if(step<=0.0 || lot<=0.0)
+      return false;
+
+   double point=AssetPoint();
+
+   if(point<=0.0)
+      return false;
+
+   double minimumDistance=
+      RecoveryMinimumPendingDistance()*point;
+
+   double minimumStep=
+      RecoveryMinimumPendingDistance();
+
+   if(step<minimumStep)
+      step=minimumStep;
+
+   RefreshRates();
+
+   int type=
+      direction==OP_BUY ?
+      OP_BUYSTOP :
+      OP_SELLSTOP;
+
+   double price=
+      direction==OP_BUY ?
+      Ask+step*point :
+      Bid-step*point;
+
+   price=NormalizePrice(price);
+
+   if(direction==OP_BUY &&
+      price<=Ask+minimumDistance)
+      return false;
+
+   if(direction==OP_SELL &&
+      price>=Bid-minimumDistance)
+      return false;
+
+   ResetLastError();
+
+   int ticket=
+      OrderSend(
+         Symbol(),
+         type,
+         lot,
+         price,
+         InpSlippage,
+         0,
+         0,
+         RecoveryComment(direction),
+         InpMagicNumber,
+         0,
+         direction==OP_BUY ? InpBuyColor : InpSellColor
+      );
+
+   if(ticket<0)
+   {
+      Print(
+         "SENTINEL RECOVERY OrderSend erro=",
+         GetLastError(),
+         " dir=",
+         direction==OP_BUY ? "BUY" : "SELL",
+         " ref=",
+         referenceTicket
+      );
+
+      return false;
+   }
+
+   SetStatus(
+      direction==OP_BUY ?
+      "RECOVERY BUY #"+IntegerToString(ticket) :
+      "RECOVERY SELL #"+IntegerToString(ticket),
+      UI_COLOR_ACCENT
+   );
+
+   return true;
+}
+
+void RecoveryManageTrailing()
+{
+   if(!g_recoveryEnabled ||
+      !g_recoveryTrailingEnabled ||
+      InpRecoveryTrailingStep<=0.0)
+      return;
+
+   double point=AssetPoint();
+
+   if(point<=0.0)
+      return;
+
+   double trailDistance=
+      InpRecoveryTrailingStep*point;
+
+   double minimumDistance=
+      RecoveryMinimumPendingDistance()*point;
+
+   for(int i=OrdersTotal()-1;i>=0;i--)
+   {
+      if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))
+         continue;
+
+      if(OrderSymbol()!=Symbol())
+         continue;
+
+      if(InpMagicNumber!=-1 &&
+         OrderMagicNumber()!=InpMagicNumber)
+         continue;
+
+      int type=OrderType();
+
+      if(type!=OP_BUYSTOP &&
+         type!=OP_SELLSTOP)
+         continue;
+
+      if(!IsRecoveryComment(OrderComment()))
+         continue;
+
+      RefreshRates();
+
+      double currentPrice=OrderOpenPrice();
+      double desired=currentPrice;
+
+      if(type==OP_BUYSTOP)
+      {
+         if(currentPrice-Ask<trailDistance)
+            continue;
+
+         int buyLevel=RecoveryMarketCount(OP_BUY);
+         double buyResetDistance=
+            RecoveryStepForLevel(buyLevel)*point;
+
+         desired=Ask+buyResetDistance;
+
+         if(desired>=currentPrice)
+            continue;
+
+         if(desired<Ask+minimumDistance)
+            desired=Ask+minimumDistance;
+      }
+      else
+      {
+         if(Bid-currentPrice<trailDistance)
+            continue;
+
+         int sellLevel=RecoveryMarketCount(OP_SELL);
+         double sellResetDistance=
+            RecoveryStepForLevel(sellLevel)*point;
+
+         desired=Bid-sellResetDistance;
+
+         if(desired<=currentPrice)
+            continue;
+
+         if(desired>Bid-minimumDistance)
+            desired=Bid-minimumDistance;
+      }
+
+      desired=NormalizePrice(desired);
+
+      if(MathAbs(desired-currentPrice)<point)
+         continue;
+
+      int ticket=OrderTicket();
+
+      ResetLastError();
+
+      if(!OrderModify(
+         ticket,
+         desired,
+         OrderStopLoss(),
+         OrderTakeProfit(),
+         0,
+         clrNONE))
+      {
+         Print(
+            "SENTINEL RECOVERY TRAIL erro=",
+            GetLastError(),
+            " ticket=",
+            ticket
+         );
+      }
+   }
+}
+
+void DeleteRecoveryPendingOrders()
+{
+   for(int i=OrdersTotal()-1;i>=0;i--)
+   {
+      if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))
+         continue;
+
+      if(OrderSymbol()!=Symbol())
+         continue;
+
+      if(InpMagicNumber!=-1 &&
+         OrderMagicNumber()!=InpMagicNumber)
+         continue;
+
+      int type=OrderType();
+
+      if(type!=OP_BUYSTOP &&
+         type!=OP_SELLSTOP)
+         continue;
+
+      if(!IsRecoveryComment(OrderComment()))
+         continue;
+
+      int ticket=OrderTicket();
+
+      ResetLastError();
+
+      if(!OrderDelete(ticket,clrNONE))
+      {
+         Print(
+            "SENTINEL RECOVERY DELETE erro=",
+            GetLastError(),
+            " ticket=",
+            ticket
+         );
+      }
+   }
+}
+
+void ManageRecovery()
+{
+   if(!g_recoveryEnabled)
+      return;
+
+   if(CountOpenPositions()<=0)
+   {
+      DeleteRecoveryPendingOrders();
+      return;
+   }
+
+   RecoveryManageTrailing();
+
+   RecoveryPlacePending(OP_BUY);
+   RecoveryPlacePending(OP_SELL);
+}
+
+void UpdateRecoveryTelemetry()
+{
+   if(ObjectFind(0,OBJ_LBL_RECOVERY_TELEMETRY)<0)
+      return;
+
+   string text=
+      "RECOVERY: "+
+      (g_recoveryEnabled ? "ON" : "OFF")+
+      " | TRAIL: "+
+      (g_recoveryTrailingEnabled ? "ON" : "OFF")+
+      " | "+DoubleToString(InpRecoveryTrailingStep,0);
+
+   int buyTicket=-1;
+   int sellTicket=-1;
+   double buyLots=0.0;
+   double sellLots=0.0;
+   double buyPrice=0.0;
+   double sellPrice=0.0;
+   datetime buyTime=0;
+   datetime sellTime=0;
+
+   if(RecoveryLastMarketOrder(
+      OP_BUY,buyTicket,buyLots,buyPrice,buyTime))
+   {
+      double adverse=0.0;
+      RecoveryTriggerReached(OP_BUY,buyPrice,adverse);
+
+      text+="\nBUY L"+
+         IntegerToString(RecoveryMarketCount(OP_BUY))+
+         " | #"+IntegerToString(buyTicket)+
+         " | REF "+DoubleToString(buyPrice,Digits)+
+         " | STEP "+DoubleToString(
+            RecoveryStepForLevel(RecoveryMarketCount(OP_BUY)),0)+
+         " | ADV "+DoubleToString(adverse,0);
+
+      int pending=RecoveryPendingTicket(OP_BUY);
+
+      if(pending>0 && OrderSelect(pending,SELECT_BY_TICKET))
+         text+=" | P#"+IntegerToString(pending)+
+            " @ "+DoubleToString(OrderOpenPrice(),Digits);
+   }
+
+   if(RecoveryLastMarketOrder(
+      OP_SELL,sellTicket,sellLots,sellPrice,sellTime))
+   {
+      double adverse=0.0;
+      RecoveryTriggerReached(OP_SELL,sellPrice,adverse);
+
+      text+="\nSELL L"+
+         IntegerToString(RecoveryMarketCount(OP_SELL))+
+         " | #"+IntegerToString(sellTicket)+
+         " | REF "+DoubleToString(sellPrice,Digits)+
+         " | STEP "+DoubleToString(
+            RecoveryStepForLevel(RecoveryMarketCount(OP_SELL)),0)+
+         " | ADV "+DoubleToString(adverse,0);
+
+      int pending=RecoveryPendingTicket(OP_SELL);
+
+      if(pending>0 && OrderSelect(pending,SELECT_BY_TICKET))
+         text+=" | P#"+IntegerToString(pending)+
+            " @ "+DoubleToString(OrderOpenPrice(),Digits);
+   }
+
+   if(buyTicket<0 && sellTicket<0)
+      text+="\nAGUARDANDO POSICAO";
+
+   ObjectSetString(
+      0,
+      OBJ_LBL_RECOVERY_TELEMETRY,
+      OBJPROP_TEXT,
+      text
+   );
+
+   ObjectSetInteger(
+      0,
+      OBJ_LBL_RECOVERY_TELEMETRY,
+      OBJPROP_COLOR,
+      g_recoveryEnabled ? UI_COLOR_ACCENT : UI_COLOR_TEXT_MUTED
+   );
 }
 
 //====================================================================
@@ -7937,6 +8528,7 @@ void ResetAllButtonVisualStates()
    ResetButtonVisualState(OBJ_BTN_REDUCE_BOTH);
    ResetButtonVisualState(OBJ_BTN_CLOSE_ALL);
    ResetButtonVisualState(OBJ_BTN_RED);
+   ResetButtonVisualState(OBJ_BTN_RECOVERY);
 
    ResetButtonVisualState(OBJ_BTN_LOTS_MINUS_10);
    ResetButtonVisualState(OBJ_BTN_LOTS_MINUS_1);
@@ -8423,7 +9015,26 @@ void BuildInterface()
    CreateLabel(OBJ_LBL_NET,"NET: 0.00 FLAT",margin+164,518,8,UI_COLOR_TEXT_MAIN);
 
    CreateLabel(OBJ_LBL_STATUS,"SENTINEL ATIVO",margin,538,7,InpBuyColor);
+   CreateButton(OBJ_BTN_RECOVERY,"REC OFF",168,532,58,20,UI_COLOR_NEUTRAL);
    CreateButton(OBJ_BTN_RED,"RED",232,532,58,20,UI_COLOR_ACCENT);
+
+   // Telemetria Recovery/Trailing: somente texto, sem fundo.
+   if(ObjectFind(0,OBJ_LBL_RECOVERY_TELEMETRY)<0)
+      ObjectCreate(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJ_LABEL,0,0,0);
+
+   ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_XDISTANCE,10);
+   ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_YDISTANCE,18);
+   ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_FONTSIZE,8);
+   ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_COLOR,UI_COLOR_TEXT_MUTED);
+   ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_SELECTABLE,false);
+   ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_SELECTED,false);
+   ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_BACK,true);
+   ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_HIDDEN,false);
+   ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_ZORDER,1);
+   ObjectSetString(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_FONT,"Segoe UI");
+   ObjectSetString(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_TEXT,"RECOVERY: OFF\\nAGUARDANDO POSICAO");
 
    ChartRedraw();
 }
@@ -8615,8 +9226,17 @@ void UpdateInterface()
    UpdateTodayRealizedPanel();
    PublishTesterOrderBridge();
    UpdateSelectedReductionPanel();
+   UpdateRecoveryTelemetry();
 
    ResetAllButtonVisualStates();
+
+   if(ObjectFind(0,OBJ_BTN_RECOVERY)>=0)
+   {
+      ObjectSetString(0,OBJ_BTN_RECOVERY,OBJPROP_TEXT,
+         g_recoveryEnabled ? "REC ON" : "REC OFF");
+      ObjectSetInteger(0,OBJ_BTN_RECOVERY,OBJPROP_BGCOLOR,
+         g_recoveryEnabled ? UI_COLOR_ACCENT : UI_COLOR_NEUTRAL);
+   }
    double buy=
       GetBuyLots();
 
@@ -9346,6 +9966,24 @@ void ProcessButton(
       return;
    }
 
+   if(name==OBJ_BTN_RECOVERY)
+   {
+      g_recoveryEnabled=!g_recoveryEnabled;
+
+      SavePanelSettingsToGlobals();
+
+      SetStatus(
+         g_recoveryEnabled ? "RECOVERY ON" : "RECOVERY OFF",
+         g_recoveryEnabled ? UI_COLOR_ACCENT : UI_COLOR_TEXT_MUTED
+      );
+
+      if(!g_recoveryEnabled)
+         DeleteRecoveryPendingOrders();
+
+      UpdateRecoveryTelemetry();
+      return;
+   }
+
    if(name==OBJ_BTN_AUTO_REDUCE)
    {
       g_autoReduceEnabled=!g_autoReduceEnabled;
@@ -9634,6 +10272,8 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_BTN_REDUCE_SELECTED);
    DeleteObjectSafe(OBJ_BTN_CLEAR_SELECTED);
    DeleteObjectSafe(OBJ_BTN_AUTO_REDUCE);
+   DeleteObjectSafe(OBJ_BTN_RECOVERY);
+   DeleteObjectSafe(OBJ_LBL_RECOVERY_TELEMETRY);
    DeleteObjectSafe(OBJ_EDIT_AUTO_MIN);
    DeleteObjectSafe(PREFIX+"LBL_AUTO_MIN");
    DeleteObjectSafe(PREFIX+"LBL_AUTO_LOTS");
@@ -9821,6 +10461,7 @@ int OnInit()
    MakeButtonNonSelectable(OBJ_BTN_CLEAR_SELECTED);
    MakeButtonNonSelectable(OBJ_BTN_REDUCE_SELECTED);
    MakeButtonNonSelectable(OBJ_BTN_AUTO_REDUCE);
+   MakeButtonNonSelectable(OBJ_BTN_RECOVERY);
    MakeButtonNonSelectable(OBJ_BTN_CLOSE_ALL);
    MakeButtonNonSelectable(OBJ_BTN_RED);
 
@@ -9950,6 +10591,7 @@ void PollTesterButtons()
       return;
 
    if(ProcessTesterButtonState(OBJ_BTN_AUTO_REDUCE)) return;
+   if(ProcessTesterButtonState(OBJ_BTN_RECOVERY)) return;
    if(ProcessTesterButtonState(OBJ_BTN_REDUCE_SELECTED)) return;
    if(ProcessTesterButtonState(OBJ_BTN_CLEAR_SELECTED)) return;
 
@@ -10107,6 +10749,8 @@ void OnTick()
 
    UpdateTradingObjects();
 
+   ManageRecovery();
+
    EvaluateAutoReduce();
 
    CheckAutoClose();
@@ -10133,6 +10777,8 @@ void OnTimer()
    UpdateInterface();
 
    UpdateTradingObjects();
+
+   ManageRecovery();
 
    CheckAutoClose();
 
