@@ -4577,65 +4577,31 @@ void CreateHLine(
          0,
          price))
       {
+         Print(
+            "SENTINEL erro criando linha ",
+            name,
+            " erro=",
+            GetLastError()
+         );
          return;
       }
    }
 
-   ObjectSetDouble(
-      0,
-      name,
-      OBJPROP_PRICE1,
-      price
-   );
+   ObjectSetDouble(0,name,OBJPROP_PRICE1,price);
+   ObjectSetInteger(0,name,OBJPROP_COLOR,lineColor);
+   ObjectSetInteger(0,name,OBJPROP_STYLE,style);
+   ObjectSetInteger(0,name,OBJPROP_WIDTH,width);
 
-   ObjectSetInteger(
-      0,
-      name,
-      OBJPROP_COLOR,
-      lineColor
-   );
+   ObjectSetInteger(0,name,OBJPROP_SELECTABLE,true);
+   ObjectSetInteger(0,name,OBJPROP_SELECTED,false);
+   ObjectSetInteger(0,name,OBJPROP_HIDDEN,false);
 
-   ObjectSetInteger(
-      0,
-      name,
-      OBJPROP_STYLE,
-      style
-   );
+   // TAKE/STOP ficam no foreground para nao serem encobertos
+   // por candles ou outros objetos desenhados no background.
+   ObjectSetInteger(0,name,OBJPROP_BACK,false);
 
-   ObjectSetInteger(
-      0,
-      name,
-      OBJPROP_WIDTH,
-      width
-   );
-
-   ObjectSetInteger(
-      0,
-      name,
-      OBJPROP_SELECTABLE,
-      true
-   );
-
-   ObjectSetInteger(
-      0,
-      name,
-      OBJPROP_SELECTED,
-      false
-   );
-
-   ObjectSetInteger(
-      0,
-      name,
-      OBJPROP_BACK,
-      true
-   );
-
-   ObjectSetInteger(
-      0,
-      name,
-      OBJPROP_ZORDER,
-      InpPanelHeight
-   );
+   // Prioridade alta para manter a referencia operacional acessivel.
+   ObjectSetInteger(0,name,OBJPROP_ZORDER,10000);
 }
 
 //====================================================================
