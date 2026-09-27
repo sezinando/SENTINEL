@@ -152,7 +152,7 @@ int FindSelectedSlot(int ticket)
    if(GetSelectedTicket(2)==ticket)
       return 2;
 
-   if((IsTesting() || InpTestMode) && GetSelectedTicket(3)==ticket)
+   if(GetSelectedTicket(3)==ticket)
       return 3;
 
    return 0;
@@ -223,7 +223,7 @@ bool ReconcileSelection()
       }
    }
 
-   if((IsTesting() || InpTestMode) && t3>0)
+   if(t3>0)
    {
       bool valid3=false;
       if(IsTesting())
@@ -275,7 +275,7 @@ int SelectionCount()
    if(GetSelectedTicket(2)>0)
       count++;
 
-   if((IsTesting() || InpTestMode) && GetSelectedTicket(3)>0)
+   if(GetSelectedTicket(3)>0)
       count++;
 
    return count;
@@ -309,9 +309,7 @@ void ToggleSelectedTicket(int ticket)
 
    int count=SelectionCount();
 
-   int maxSelection=MathMax(1,InpSelectionMax);
-
-   maxSelection=MathMin(3,MathMax(1,maxSelection));
+   int maxSelection=MathMin(3,MathMax(1,InpSelectionMax));
 
    if(count>=maxSelection)
       return;
