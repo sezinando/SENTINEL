@@ -123,7 +123,7 @@ string SelectionGenericName(int slot)
 
 int GetSelectedTicket(int slot)
 {
-   int maxSlot=(IsTesting() || InpTestMode) ? 3 : 2;
+   int maxSlot=MathMin(3,MathMax(1,InpSelectionMax));
 
    if(slot<1 || slot>maxSlot)
       return -1;
@@ -311,10 +311,7 @@ void ToggleSelectedTicket(int ticket)
 
    int maxSelection=MathMax(1,InpSelectionMax);
 
-   if(IsTesting() || InpTestMode)
-      maxSelection=MathMin(3,MathMax(3,maxSelection));
-   else
-      maxSelection=MathMin(2,maxSelection);
+   maxSelection=MathMin(3,MathMax(1,maxSelection));
 
    if(count>=maxSelection)
       return;
