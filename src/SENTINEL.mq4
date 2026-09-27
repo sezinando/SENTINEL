@@ -2921,16 +2921,15 @@ void RenderSelectedOrderLines()
          continue;
       }
 
-      color lineColor=clrAqua;
+      // Convencao visual da CESTA:
+      // T1 = ordem a ser reduzida -> cor de destaque.
+      // T2/T3 = ordens positivas que geram credito -> mesma cor.
+      color lineColor=clrLimeGreen;
 
       if(slot==1)
+         lineColor=clrRed;
+      else
          lineColor=clrLimeGreen;
-      else
-      if(slot==2)
-         lineColor=clrAqua;
-      else
-      if(slot==3)
-         lineColor=clrOrange;
 
       // Marcacao visual curta, como no mecanismo original:
       // segmento tracejado, sem atravessar todo o grafico.
