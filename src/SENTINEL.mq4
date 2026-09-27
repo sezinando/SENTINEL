@@ -2866,8 +2866,15 @@ void DeleteSelectedReductionLines()
 
 void RenderSelectedOrderLines()
 {
-   // A selecao deve ser visualizada independentemente de existir
-   // um plano economico de REDUCE valido.
+   // A indicacao visual da selecao e independente da regra
+   // economica do SENTINEL. O ticket foi selecionado pelo
+   // CESTA_MANAGER, portanto aqui basta que ele exista no chart.
+   //
+   // IMPORTANTE:
+   // Nao usamos IsOurOrder() nesta etapa. O CESTA_MANAGER pode
+   // publicar uma selecao generica (Magic = -1) ou uma ordem com
+   // Magic diferente do InpMagicNumber do SENTINEL. A visualizacao
+   // deve continuar funcionando nesses casos.
    for(int slot=1;slot<=3;slot++)
    {
       string lineName=
@@ -2884,7 +2891,28 @@ void RenderSelectedOrderLines()
          continue;
       }
 
-      double price=GetSelectedOrderOpenPrice(ticket);
+      if(!OrderSelect(
+         ticket,
+         SELECT_BY_TICKET,
+         MODE_TRADES))
+      {
+         DeleteObjectSafe(lineName);
+         DeleteObjectSafe(textName);
+         continue;
+      }
+
+      if(OrderSymbol()!=Symbol() ||
+         (OrderType()!=OP_BUY && OrderType()!=OP_SELL))
+      {
+         DeleteObjectSafe(lineName);
+         DeleteObjectSafe(textName);
+         continue;
+      }
+
+      double price=
+         NormalizePrice(
+            OrderOpenPrice()
+         );
 
       if(price<=0.0)
       {
@@ -2894,6 +2922,7 @@ void RenderSelectedOrderLines()
       }
 
       color lineColor=clrAqua;
+
       if(slot==1)
          lineColor=clrLimeGreen;
       else
@@ -2914,7 +2943,8 @@ void RenderSelectedOrderLines()
       string text=
          "T"+IntegerToString(slot)+
          " #"+IntegerToString(ticket)+
-         " "+SelectedTypeText(ticket);
+         " "+
+         (OrderType()==OP_BUY ? "BUY" : "SELL");
 
       if(ObjectFind(0,textName)<0)
       {
