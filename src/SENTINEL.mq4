@@ -2850,14 +2850,123 @@ void DeleteSelectedReductionLines()
    DeleteObjectSafe(PREFIX+"TXT_SELECTED_CREDIT_2");
    DeleteObjectSafe(PREFIX+"LINE_SELECTED_CREDIT_2");
    DeleteObjectSafe(PREFIX+"TXT_SELECTED_CREDIT_2");
+
+   // Referencias individuais das selecoes T1/T2/T3.
+   for(int slot=1;slot<=3;slot++)
+   {
+      DeleteObjectSafe(
+         PREFIX+"LINE_SELECTED_T"+IntegerToString(slot)
+      );
+      DeleteObjectSafe(
+         PREFIX+"TXT_SELECTED_T"+IntegerToString(slot)
+      );
+   }
+}
+
+void RenderSelectedOrderLines()
+{
+   // A selecao deve ser visualizada independentemente de existir
+   // um plano economico de REDUCE valido.
+   for(int slot=1;slot<=3;slot++)
+   {
+      string lineName=
+         PREFIX+"LINE_SELECTED_T"+IntegerToString(slot);
+      string textName=
+         PREFIX+"TXT_SELECTED_T"+IntegerToString(slot);
+
+      int ticket=GetSelectedTicket(slot);
+
+      if(ticket<=0)
+      {
+         DeleteObjectSafe(lineName);
+         DeleteObjectSafe(textName);
+         continue;
+      }
+
+      double price=GetSelectedOrderOpenPrice(ticket);
+
+      if(price<=0.0)
+      {
+         DeleteObjectSafe(lineName);
+         DeleteObjectSafe(textName);
+         continue;
+      }
+
+      color lineColor=clrAqua;
+      if(slot==1)
+         lineColor=clrLimeGreen;
+      else
+      if(slot==2)
+         lineColor=clrAqua;
+      else
+      if(slot==3)
+         lineColor=clrOrange;
+
+      CreateSegmentHLine(
+         lineName,
+         price,
+         lineColor,
+         STYLE_DASHDOT,
+         2
+      );
+
+      string text=
+         "T"+IntegerToString(slot)+
+         " #"+IntegerToString(ticket)+
+         " "+SelectedTypeText(ticket);
+
+      if(ObjectFind(0,textName)<0)
+      {
+         CreatePriceText(
+            textName,
+            text,
+            price,
+            lineColor
+         );
+      }
+      else
+      {
+         ObjectSetDouble(
+            0,
+            textName,
+            OBJPROP_PRICE1,
+            price
+         );
+
+         ObjectSetString(
+            0,
+            textName,
+            OBJPROP_TEXT,
+            text
+         );
+
+         ObjectSetInteger(
+            0,
+            textName,
+            OBJPROP_COLOR,
+            lineColor
+         );
+      }
+   }
 }
 
 void UpdateSelectedReductionLines()
 {
-   // Nao existe plano valido: nenhuma referencia visual deve permanecer.
+   // A selecao e uma informacao visual independente do plano
+   // economico. Mesmo com apenas T1 selecionada, o ticket deve
+   // aparecer no chart.
+   RenderSelectedOrderLines();
+
+   // Nao existe plano economico valido: mantemos as linhas T1/T2/T3
+   // e removemos somente as referencias especificas do plano.
    if(!BuildSelectedReductionPlan())
    {
-      DeleteSelectedReductionLines();
+      DeleteObjectSafe(OBJ_LINE_SELECTED_TARGET);
+      DeleteObjectSafe(OBJ_LINE_SELECTED_REFERENCE);
+      DeleteObjectSafe(PREFIX+"LINE_SELECTED_CREDIT_2");
+      DeleteObjectSafe(OBJ_TXT_SELECTED_TARGET);
+      DeleteObjectSafe(OBJ_TXT_SELECTED_REFERENCE);
+      DeleteObjectSafe(PREFIX+"TXT_SELECTED_CREDIT_2");
       return;
    }
 
