@@ -187,6 +187,7 @@ input double   InpRecoveryLotIncrement    = 0.02;
 input double   InpRecoveryMaxLot          = 3.00;
 input bool     InpRecoveryTrailingDefault = true;
 input double   InpRecoveryTrailingStep   = 50.0;
+input double   InpRecoveryPendingOffset = 100.0;
 
 //====================================================================
 // PASSO DOS NIVEIS POR ATIVO
@@ -7505,10 +7506,18 @@ bool RecoveryPlacePending(int direction)
       OP_BUYSTOP :
       OP_SELLSTOP;
 
+   // Offset adicional entre o preco atual e a nova pendente.
+   // O SmartGrid continua definindo a logica da escada; este offset
+   // cria uma folga para evitar ativacao imediata da Recovery.
+   double pendingOffset=
+      MathMax(0.0,InpRecoveryPendingOffset);
+
+   double priceDistance=step+pendingOffset;
+
    double price=
       direction==OP_BUY ?
-      Ask+step*point :
-      Bid-step*point;
+      Ask+priceDistance*point :
+      Bid-priceDistance*point;
 
    price=NormalizePrice(price);
 
