@@ -153,6 +153,7 @@ void UpdateTodayRealizedPanel()
 //      inclusive ordens manuais com Magic Number 0.
 input int      InpMagicNumber       = 1001;
 input bool     InpTestMode          = false;
+input int      InpSelectionMax      = 3;
 
 // Comentario gravado nas novas ordens do SENTINEL.
 // RED acrescenta automaticamente " RED" ao final.
