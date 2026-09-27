@@ -1502,7 +1502,7 @@ string SelectedGlobalName(int slot)
 
 int GetSelectedTicket(int slot)
 {
-   int maxSlot=(IsTesting() || InpTestMode) ? 3 : 2;
+   int maxSlot=MathMin(3,MathMax(1,InpSelectionMax));
 
    if(slot<1 || slot>maxSlot)
       return -1;
@@ -1669,11 +1669,10 @@ bool BuildSelectedReductionPlan()
       double lossLots=0.0;
       double lossResult=0.0;
 
-      // No modo de teste, T3 representa explicitamente a LOSS
-      // que sera reduzida. Fora do modo de teste, preserva-se
-      // integralmente o comportamento atual: a LOSS mais negativa
-      // da cesta e encontrada automaticamente.
-      if((IsTesting() || InpTestMode))
+      // T3 pode representar explicitamente a LOSS que sera reduzida.
+      // Se T3 nao estiver selecionada, a LOSS mais negativa da cesta
+      // continua sendo encontrada automaticamente.
+      if(GetSelectedTicket(3)>0)
       {
          int ticket3=GetSelectedTicket(3);
 
