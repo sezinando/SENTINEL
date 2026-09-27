@@ -6533,6 +6533,13 @@ void UpdateTradingObjects()
 
    EndBasketIfNeeded();
 
+   // A selecao visual do CESTA_MANAGER e independente da cesta
+   // economica do SENTINEL. No LIVE, uma ordem selecionada pode ter
+   // Magic diferente de InpMagicNumber; nesse caso CountOpenPositions()
+   // pode retornar zero e encerrar o fluxo antes da renderizacao.
+   // Portanto a marcacao T1/T2/T3 deve ser atualizada primeiro.
+   RenderSelectedOrderLines();
+
    // Quando nao existem mais posicoes, todas as referencias
    // operacionais devem desaparecer imediatamente do grafico.
    if(CountOpenPositions()<=0)
