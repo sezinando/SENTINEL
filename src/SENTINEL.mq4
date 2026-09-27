@@ -2932,12 +2932,51 @@ void RenderSelectedOrderLines()
       if(slot==3)
          lineColor=clrOrange;
 
-      CreateSegmentHLine(
+      // Use OBJ_HLINE for the selection marker. Unlike the
+      // segmented OBJ_TREND used by BE/AVERAGE, HLINE does not
+      // depend on ChartXYToTimePrice() to create the visual object.
+      // This makes the selection marker deterministic in LIVE.
+      CreateHLine(
          lineName,
          price,
          lineColor,
          STYLE_DASHDOT,
          2
+      );
+
+      ObjectSetInteger(
+         0,
+         lineName,
+         OBJPROP_SELECTABLE,
+         false
+      );
+
+      ObjectSetInteger(
+         0,
+         lineName,
+         OBJPROP_SELECTED,
+         false
+      );
+
+      ObjectSetInteger(
+         0,
+         lineName,
+         OBJPROP_BACK,
+         false
+      );
+
+      ObjectSetInteger(
+         0,
+         lineName,
+         OBJPROP_HIDDEN,
+         false
+      );
+
+      ObjectSetInteger(
+         0,
+         lineName,
+         OBJPROP_ZORDER,
+         250
       );
 
       string text=
