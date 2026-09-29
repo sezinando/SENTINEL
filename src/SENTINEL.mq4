@@ -3335,6 +3335,60 @@ string RecoveryEnabledGlobalName()
           IntegerToString(InpMagicNumber);
 }
 
+/*__RECOVERY_LOCK_BLOCK__*/
+string RecoveryTriggerLockName(
+   int direction,
+   int referenceTicket)
+{
+   return PREFIX+
+          "RECOVERY_TRIGGER_LOCK_"+
+          Symbol()+
+          "_"+
+          IntegerToString(InpMagicNumber)+
+          "_"+
+          IntegerToString(direction)+
+          "_"+
+          IntegerToString(referenceTicket);
+}
+
+bool RecoveryTriggerAlreadyConsumed(
+   int direction,
+   int referenceTicket)
+{
+   if(referenceTicket<=0)
+      return false;
+
+   return GlobalVariableCheck(
+      RecoveryTriggerLockName(
+         direction,
+         referenceTicket
+      )
+   );
+}
+
+void RecoveryMarkTriggerConsumed(
+   int direction,
+   int referenceTicket,
+   int recoveryTicket)
+{
+   if(referenceTicket<=0)
+      return;
+
+   string name=
+      RecoveryTriggerLockName(
+         direction,
+         referenceTicket
+      );
+
+   GlobalVariableSet(
+      name,
+      (double)recoveryTicket
+   );
+
+   GlobalVariablesFlush();
+}
+/*__END_RECOVERY_LOCK_BLOCK__*/
+
 //====================================================================
 // PERSISTENCIA DOS PARAMETROS DO PAINEL
 //
@@ -7546,6 +7600,14 @@ bool RecoveryPlacePending(int direction)
       referenceTime))
       return false;
 
+   // A mesma ordem MARKET de referencia so pode consumir
+   // UM gatilho de Recovery. Esta trava complementa a verificacao
+   // da pending existente e elimina disparos duplicados.
+   if(RecoveryTriggerAlreadyConsumed(
+      direction,
+      referenceTicket))
+      return false;
+
    int level=RecoveryMarketCount(direction);
 
    // A nova Recovery somente e liberada depois de atravessar:
@@ -7638,6 +7700,15 @@ bool RecoveryPlacePending(int direction)
 
       return false;
    }
+
+   // O lock e gravado SOMENTE depois de OrderSend() confirmar
+   // a criacao da pending. Assim, um erro de envio nao consome
+   // o gatilho e permite uma nova tentativa valida.
+   RecoveryMarkTriggerConsumed(
+      direction,
+      referenceTicket,
+      ticket
+   );
 
    SetStatus(
       direction==OP_BUY ?
