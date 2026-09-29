@@ -899,7 +899,8 @@ void CreateActionButton(
    int x,
    int y,
    color background,
-   color foreground)
+   color foreground,
+   color borderColor)
 {
    if(ObjectFind(0,name)<0)
    {
@@ -932,7 +933,7 @@ void CreateActionButton(
    ObjectSetInteger(0,name,OBJPROP_FONTSIZE,9);
    ObjectSetInteger(0,name,OBJPROP_COLOR,foreground);
    ObjectSetInteger(0,name,OBJPROP_BGCOLOR,background);
-   ObjectSetInteger(0,name,OBJPROP_BORDER_COLOR,clrDimGray);
+   ObjectSetInteger(0,name,OBJPROP_BORDER_COLOR,borderColor);
 
    ObjectSetInteger(0,name,OBJPROP_SELECTABLE,(IsTesting() || InpTestMode));
    ObjectSetInteger(0,name,OBJPROP_SELECTED,false);
@@ -1389,7 +1390,8 @@ void RenderPanel()
             IsSelectedTicket(wins[i].ticket) ?
             InpSelectedButtonColor :
             InpBuyButtonColor,
-            InpButtonTextColor
+            InpButtonTextColor,
+            (wins[i].result>0.00000001 ? clrDodgerBlue : clrDimGray)
          );
 
          // Ticket guardado na tooltip apenas para o evento local.
@@ -1421,7 +1423,8 @@ void RenderPanel()
             IsSelectedTicket(wins[i].ticket) ?
             InpSelectedButtonColor :
             InpSellButtonColor,
-            InpButtonTextColor
+            InpButtonTextColor,
+            (wins[i].result>0.00000001 ? clrDodgerBlue : clrDimGray)
          );
 
          ObjectSetString(
@@ -1455,7 +1458,8 @@ void RenderPanel()
          InpPanelXOffset,
          bottomY,
          InpReduceButtonColor,
-         InpReduceTextColor
+         InpReduceTextColor,
+         clrDimGray
       );
    }
 
