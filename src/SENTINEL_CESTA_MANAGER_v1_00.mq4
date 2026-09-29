@@ -1802,8 +1802,8 @@ void OnChartEvent(
       // A execucao pertence ao SENTINEL.
       if(sparam==PREFIX+"BTN_REDUCE_BXS")
       {
-         int singleWinningTicket=
-            GetSingleSelectedWinningTicket();
+         int singleSelectedTicket=
+            GetSingleSelectedTicket();
 
          if(singleSelectedTicket>0)
          {
