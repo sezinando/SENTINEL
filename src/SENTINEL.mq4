@@ -1503,6 +1503,45 @@ string SelectedGlobalName(int slot)
           IntegerToString(slot);
 }
 
+// Acao solicitada pelo CESTA MANAGER.
+string SelectedActionGlobalName()
+{
+   return "SENTINEL_SELECTED_ACTION_"+
+          Symbol()+"_"+
+          IntegerToString(InpMagicNumber);
+}
+
+string SelectedActionGenericName()
+{
+   return "SENTINEL_SELECTED_ACTION_"+
+          Symbol()+"_-1";
+}
+
+void ProcessSelectedActionRequest()
+{
+   string name=SelectedActionGlobalName();
+   string fallback=SelectedActionGenericName();
+
+   double action=0.0;
+
+   if(GlobalVariableCheck(name))
+      action=GlobalVariableGet(name);
+   else
+   if(GlobalVariableCheck(fallback))
+      action=GlobalVariableGet(fallback);
+
+   if(action<=0.00000001)
+      return;
+
+   // Consome a solicitacao antes da execucao para impedir repeticao.
+   GlobalVariableDel(name);
+   GlobalVariableDel(fallback);
+   GlobalVariablesFlush();
+
+   if(action==1.0)
+      ExecuteSelectedReduction();
+}
+
 int GetSelectedTicket(int slot)
 {
    int maxSlot=MathMin(3,MathMax(1,InpSelectionMax));
@@ -1639,6 +1678,43 @@ bool BuildSelectedReductionPlan()
    int ticket1=GetSelectedTicket(1);
    int ticket2=GetSelectedTicket(2);
    int ticket3=GetSelectedTicket(3);
+
+   // Uma unica WIN selecionada pelo CESTA MANAGER usa T2.
+   // Ela pode ser reduzida diretamente, sem exigir LOSS ou outra WIN.
+   if(ticket1<=0 && ticket2>0 && ticket3<=0)
+   {
+      int singleType=-1;
+      double singleLots=0.0;
+      double singleResult=0.0;
+
+      if(!GetSelectedOrderSnapshot(
+         ticket2,
+         singleType,
+         singleLots,
+         singleResult))
+         return false;
+
+      if(singleResult<=0.00000001)
+         return false;
+
+      g_selectedTargetTicket=ticket2;
+      g_selectedTargetLots=singleLots;
+      g_selectedTargetResult=singleResult;
+
+      g_selectedReduceLots=
+         NormalizeLots(
+            MathMin(
+               NormalizeLots(g_selectedLots),
+               singleLots
+            )
+         );
+
+      if(g_selectedReduceLots<=0.0)
+         return false;
+
+      g_selectedPlanValid=true;
+      return true;
+   }
 
    if(ticket1<=0)
       return false;
@@ -10879,6 +10955,8 @@ void OnTick()
 
    UpdateTradingObjects();
 
+   ProcessSelectedActionRequest();
+
    ManageRecovery();
 
    EvaluateAutoReduce();
@@ -10907,6 +10985,8 @@ void OnTimer()
    UpdateInterface();
 
    UpdateTradingObjects();
+
+   ProcessSelectedActionRequest();
 
    ManageRecovery();
 
