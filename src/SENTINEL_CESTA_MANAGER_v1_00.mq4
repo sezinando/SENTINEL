@@ -953,8 +953,63 @@ void CreateActionButton(
    ObjectSetInteger(0,name,OBJPROP_ZORDER,500);
 }
 
+void CreateVisualOrderBorder(
+   string name,
+   int x,
+   int y,
+   int width,
+   int height,
+   color borderColor,
+   int borderWidth)
+{
+   if(borderWidth<=0)
+      return;
+
+   string base=name+"_BORDER";
+
+   // Remove a border anterior antes de recriar.
+   for(int i=0;i<8;i++)
+   {
+      string oldName=base+"_"+IntegerToString(i);
+      if(ObjectFind(0,oldName)>=0)
+         ObjectDelete(0,oldName);
+   }
+
+   int w=MathMax(1,borderWidth);
+
+   // Cria quatro segmentos independentes para obter uma borda
+   // visual realmente perceptivel, sem depender de OBJPROP_WIDTH
+   // do OBJ_BUTTON.
+   CreateRectangle(base+"_0",x,y,width,w,borderColor,borderColor);
+   CreateRectangle(base+"_1",x,y+height-w,width,w,borderColor,borderColor);
+   CreateRectangle(base+"_2",x,y,w,height,borderColor,borderColor);
+   CreateRectangle(base+"_3",x+width-w,y,w,height,borderColor,borderColor);
+
+   for(int i=0;i<4;i++)
+   {
+      string segment=base+"_"+IntegerToString(i);
+      ObjectSetInteger(0,segment,OBJPROP_ZORDER,510);
+      ObjectSetInteger(0,segment,OBJPROP_SELECTABLE,false);
+      ObjectSetInteger(0,segment,OBJPROP_HIDDEN,true);
+   }
+}
+
+void DeleteVisualOrderBorder(string name)
+{
+   string base=name+"_BORDER";
+
+   for(int i=0;i<8;i++)
+   {
+      string borderName=base+"_"+IntegerToString(i);
+      if(ObjectFind(0,borderName)>=0)
+         ObjectDelete(0,borderName);
+   }
+}
+
 void DeleteActionButton(string name)
 {
+   DeleteVisualOrderBorder(name);
+
    if(ObjectFind(0,name)>=0)
       ObjectDelete(0,name);
 }
@@ -1407,6 +1462,19 @@ void RenderPanel()
              InpNeutralBorderColor)
          );
 
+         if(wins[i].result>0.00000001)
+         {
+            CreateVisualOrderBorder(
+               name,
+               leftX,
+               y+buyRow*(InpButtonHeight+5),
+               InpButtonWidth,
+               InpButtonHeight,
+               InpPositiveBorderColor,
+               InpPositiveBorderWidth
+            );
+         }
+
          // Ticket guardado na tooltip apenas para o evento local.
          ObjectSetString(
             0,
@@ -1439,6 +1507,19 @@ void RenderPanel()
             InpButtonTextColor,
             (wins[i].result>0.00000001 ? clrDodgerBlue : clrDimGray)
          );
+
+         if(wins[i].result>0.00000001)
+         {
+            CreateVisualOrderBorder(
+               name,
+               rightX,
+               y+sellRow*(InpButtonHeight+5),
+               InpButtonWidth,
+               InpButtonHeight,
+               InpPositiveBorderColor,
+               InpPositiveBorderWidth
+            );
+         }
 
          ObjectSetString(
             0,
