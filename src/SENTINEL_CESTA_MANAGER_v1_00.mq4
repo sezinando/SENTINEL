@@ -90,11 +90,9 @@ input color    InpBuyButtonColor    = clrLime;
 input color    InpSellButtonColor   = clrTomato;
 input color    InpButtonTextColor   = clrBlack;
 
-// Borda das ordens vencedoras (WIN).
+// Configuracao visual das bordas das ordens.
 input color    InpPositiveBorderColor = clrDodgerBlue;
 input int      InpPositiveBorderWidth = 2;
-
-// Borda das ordens neutras/perdedoras.
 input color    InpNeutralBorderColor  = clrDimGray;
 input int      InpNeutralBorderWidth  = 1;
 
