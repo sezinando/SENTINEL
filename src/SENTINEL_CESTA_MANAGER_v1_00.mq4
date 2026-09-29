@@ -90,6 +90,14 @@ input color    InpBuyButtonColor    = clrLime;
 input color    InpSellButtonColor   = clrTomato;
 input color    InpButtonTextColor   = clrBlack;
 
+// Borda das ordens vencedoras (WIN).
+input color    InpPositiveBorderColor = clrDodgerBlue;
+input int      InpPositiveBorderWidth = 2;
+
+// Borda das ordens neutras/perdedoras.
+input color    InpNeutralBorderColor  = clrDimGray;
+input int      InpNeutralBorderWidth  = 1;
+
 // Cor do botao REDUCE BxS.
 input color    InpReduceButtonColor = clrGold;
 input color    InpReduceTextColor   = clrBlack;
@@ -934,7 +942,11 @@ void CreateActionButton(
    ObjectSetInteger(0,name,OBJPROP_COLOR,foreground);
    ObjectSetInteger(0,name,OBJPROP_BGCOLOR,background);
    ObjectSetInteger(0,name,OBJPROP_BORDER_COLOR,borderColor);
-   ObjectSetInteger(0,name,OBJPROP_WIDTH,(borderColor==clrDodgerBlue ? 2 : 1));
+   ObjectSetInteger(0,name,OBJPROP_WIDTH,
+      (borderColor==InpPositiveBorderColor ?
+       InpPositiveBorderWidth :
+       InpNeutralBorderWidth)
+   );
 
    ObjectSetInteger(0,name,OBJPROP_SELECTABLE,(IsTesting() || InpTestMode));
    ObjectSetInteger(0,name,OBJPROP_SELECTED,false);
@@ -1392,7 +1404,9 @@ void RenderPanel()
             InpSelectedButtonColor :
             InpBuyButtonColor,
             InpButtonTextColor,
-            (wins[i].result>0.00000001 ? clrDodgerBlue : clrDimGray)
+            (wins[i].result>0.00000001 ?
+             InpPositiveBorderColor :
+             InpNeutralBorderColor)
          );
 
          // Ticket guardado na tooltip apenas para o evento local.
