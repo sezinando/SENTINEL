@@ -6472,7 +6472,7 @@ void UpdateTradingObjects()
 }
 
 //====================================================================
-// RED - REBALANCEAR
+// HED - HEDGE / REBALANCEAR
 //====================================================================
 //
 // Deixa BUY e SELL com a mesma quantidade de lotes.
@@ -9222,7 +9222,7 @@ void BuildInterface()
 
    CreateLabel(OBJ_LBL_STATUS,"SENTINEL ATIVO",margin,538,7,InpBuyColor);
    CreateButton(OBJ_BTN_RECOVERY,"REC OFF",168,532,58,20,UI_COLOR_NEUTRAL);
-   CreateButton(OBJ_BTN_RED,"RED",232,532,58,20,UI_COLOR_ACCENT);
+   CreateButton(OBJ_BTN_RED,"HED",232,532,58,20,UI_COLOR_ACCENT);
 
    // Telemetria Recovery/Trailing: somente texto, sem fundo.
    if(ObjectFind(0,OBJ_LBL_RECOVERY_TELEMETRY)<0)
