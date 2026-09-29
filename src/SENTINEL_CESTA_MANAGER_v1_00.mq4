@@ -1684,8 +1684,8 @@ void RenderPanel()
 
       string reduceText=
          (singleSelectedTicket>0) ?
-         "REDUCE SELECIONADO" :
-         "REDUCE BxS  ELEGIVEL";
+         "HED SELECIONADO" :
+         "HED  BxS  ELEGIVEL";
 
       CreateActionButton(
          PREFIX+"BTN_REDUCE_BXS",
