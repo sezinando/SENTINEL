@@ -934,6 +934,7 @@ void CreateActionButton(
    ObjectSetInteger(0,name,OBJPROP_COLOR,foreground);
    ObjectSetInteger(0,name,OBJPROP_BGCOLOR,background);
    ObjectSetInteger(0,name,OBJPROP_BORDER_COLOR,borderColor);
+   ObjectSetInteger(0,name,OBJPROP_WIDTH,(borderColor==clrDodgerBlue ? 2 : 1));
 
    ObjectSetInteger(0,name,OBJPROP_SELECTABLE,(IsTesting() || InpTestMode));
    ObjectSetInteger(0,name,OBJPROP_SELECTED,false);
