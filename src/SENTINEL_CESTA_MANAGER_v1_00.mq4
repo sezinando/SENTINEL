@@ -251,8 +251,12 @@ bool ReconcileSelection()
       }
    }
 
-   // Se T1 foi liberado mas T2 continua valido, compacta a selecao.
-   if(t1<=0 && t2>0)
+   // A selecao possui semantica fixa:
+   // T1 = LOSS a reduzir.
+   // T2/T3 = WINs de credito.
+   // Portanto, uma WIN nunca deve ser compactada para T1.
+   if(t1<=0 && t2>0 &&
+      GetSelectionOrderResult(t2)<-0.00000001)
    {
       GlobalVariableSet(
          SelectionGlobalName(1),
@@ -300,6 +304,41 @@ void ClearSelectedTickets()
    GlobalVariablesFlush();
 }
 
+double GetSelectionOrderResult(int ticket)
+{
+   if(ticket<=0)
+      return 0.0;
+
+   if(IsTesting())
+   {
+      int count=TesterBridgeCount();
+
+      for(int i=0;i<count;i++)
+      {
+         int t=0,type=0,magic=0;
+         double lots=0.0,result=0.0,openPrice=0.0;
+         datetime openTime=0;
+
+         if(!GetTesterBridgeOrder(
+            i,t,type,magic,lots,result,openPrice,openTime))
+            continue;
+
+         if(t==ticket)
+            return result;
+      }
+
+      return 0.0;
+   }
+
+   if(!OrderSelect(ticket,SELECT_BY_TICKET,MODE_TRADES))
+      return 0.0;
+
+   if(!IsSelectedMarketOrder())
+      return 0.0;
+
+   return OrderNetResult();
+}
+
 void ToggleSelectedTicket(int ticket)
 {
    // Antes de aceitar uma nova selecao, elimina tickets que ja nao
@@ -325,11 +364,37 @@ void ToggleSelectedTicket(int ticket)
    if(count>=maxSelection)
       return;
 
-   int targetSlot=1;
-   if(GetSelectedTicket(1)>0)
-      targetSlot=2;
-   if(GetSelectedTicket(2)>0 && maxSelection>=3)
-      targetSlot=3;
+   // A ordem de clique nao define o papel economico.
+   // LOSS -> T1 (ordem que sera reduzida).
+   // WIN  -> T2/T3 (ordens que fornecem credito).
+   double selectedResult=GetSelectionOrderResult(ticket);
+
+   int targetSlot=0;
+
+   if(selectedResult<-0.00000001)
+   {
+      // Existe apenas uma LOSS permitida no plano.
+      if(GetSelectedTicket(1)>0)
+         return;
+
+      targetSlot=1;
+   }
+   else
+   if(selectedResult>0.00000001)
+   {
+      if(GetSelectedTicket(2)<=0)
+         targetSlot=2;
+      else
+      if(maxSelection>=3 && GetSelectedTicket(3)<=0)
+         targetSlot=3;
+      else
+         return;
+   }
+   else
+   {
+      // Resultado neutro nao participa do plano WIN + LOSS.
+      return;
+   }
 
    GlobalVariableSet(
       SelectionGlobalName(targetSlot),
