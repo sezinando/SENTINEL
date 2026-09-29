@@ -132,6 +132,29 @@ string SelectionGenericName(int slot)
    return SelectionGenericPrefix()+IntegerToString(slot);
 }
 
+// Acao solicitada pelo CESTA MANAGER ao SENTINEL.
+// O fechamento continua sendo executado pelo EA, preservando a
+// separacao entre interface e execucao de ordens.
+string SelectedActionGlobalName()
+{
+   return "SENTINEL_SELECTED_ACTION_"+
+          Symbol()+"_"+
+          IntegerToString(InpMagicNumber);
+}
+
+string SelectedActionGenericName()
+{
+   return "SENTINEL_SELECTED_ACTION_"+
+          Symbol()+"_-1";
+}
+
+void RequestSelectedReduction()
+{
+   GlobalVariableSet(SelectedActionGlobalName(),1.0);
+   GlobalVariableSet(SelectedActionGenericName(),1.0);
+   GlobalVariablesFlush();
+}
+
 int GetSelectedTicket(int slot)
 {
    int maxSlot=MathMin(3,MathMax(1,InpSelectionMax));
@@ -167,6 +190,32 @@ int FindSelectedSlot(int ticket)
       return 3;
 
    return 0;
+}
+
+// Retorna a unica ordem selecionada quando ela esta positiva.
+// Esse caso habilita REDUCE direto sem exigir uma LOSS ou outra WIN.
+int GetSingleSelectedWinningTicket()
+{
+   int selectedCount=0;
+   int winningTicket=-1;
+
+   for(int slot=1;slot<=3;slot++)
+   {
+      int ticket=GetSelectedTicket(slot);
+
+      if(ticket<=0)
+         continue;
+
+      selectedCount++;
+
+      if(GetSelectionOrderResult(ticket)>0.00000001)
+         winningTicket=ticket;
+   }
+
+   if(selectedCount==1 && winningTicket>0)
+      return winningTicket;
+
+   return -1;
 }
 
 // Remove uma selecao de um slot e elimina as Global Variables.
@@ -1619,10 +1668,13 @@ void RenderPanel()
       }
    }
 
-   // REDUCE BxS:
-   // somente aparece quando existe pelo menos uma BUY WIN
-   // e uma SELL WIN.
-   if(buyCount>0 && sellCount>0)
+   // REDUCE:
+   // 1) WIN isolada selecionada -> REDUCE WIN direto.
+   // 2) BUY WIN + SELL WIN -> REDUCE BxS tradicional.
+   int singleSelectedWinningTicket=GetSingleSelectedWinningTicket();
+
+   if((buyCount>0 && sellCount>0) ||
+      singleSelectedWinningTicket>0)
    {
       int bottomY=
          InpPanelY+
@@ -1631,9 +1683,14 @@ void RenderPanel()
          (InpButtonHeight+5)+
          4;
 
+      string reduceText=
+         (singleSelectedWinningTicket>0) ?
+         "REDUCE WIN" :
+         "REDUCE BxS  ELEGIVEL";
+
       CreateActionButton(
          PREFIX+"BTN_REDUCE_BXS",
-         "REDUCE BxS  ELEGIVEL",
+         reduceText,
          gPanelX+
          (InpPanelWidth-InpButtonWidth)/2+
          InpPanelXOffset,
@@ -1737,7 +1794,24 @@ void OnChartEvent(
       // A execucao pertence ao SENTINEL.
       if(sparam==PREFIX+"BTN_REDUCE_BXS")
       {
-         SetStatusSelectionHint();
+         int singleWinningTicket=
+            GetSingleSelectedWinningTicket();
+
+         if(singleWinningTicket>0)
+         {
+            RequestSelectedReduction();
+
+            Print(
+               "SENTINEL CESTA MANAGER: "
+               "REDUCE WIN solicitado. TICKET=",
+               singleWinningTicket
+            );
+         }
+         else
+         {
+            SetStatusSelectionHint();
+         }
+
          ObjectSetInteger(
             0,
             sparam,
