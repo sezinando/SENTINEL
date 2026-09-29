@@ -1470,6 +1470,8 @@ double g_selectedCreditMoney=0.0;
 double g_selectedCreditRequiredMoney=0.0;
 double g_selectedCreditProjectedProfit=0.0;
 bool   g_selectedCreditReady=false;
+int    g_selectedCreditSlot1=0;
+int    g_selectedCreditSlot2=0;
 
 // Planejamento economico da reducao WIN + LOSS.
 double g_selectedLossCloseLots=0.0;
@@ -1624,6 +1626,8 @@ bool BuildSelectedReductionPlan()
    g_selectedCreditRequiredMoney=0.0;
    g_selectedCreditProjectedProfit=0.0;
    g_selectedCreditReady=false;
+   g_selectedCreditSlot1=0;
+   g_selectedCreditSlot2=0;
 
    g_selectedLossCloseLots=0.0;
    g_selectedWinRequiredMoney=0.0;
@@ -1634,330 +1638,64 @@ bool BuildSelectedReductionPlan()
 
    int ticket1=GetSelectedTicket(1);
    int ticket2=GetSelectedTicket(2);
+   int ticket3=GetSelectedTicket(3);
 
    if(ticket1<=0)
       return false;
 
    int type1=-1;
    int type2=-1;
+   int type3=-1;
+
    double lots1=0.0;
    double lots2=0.0;
+   double lots3=0.0;
+
    double result1=0.0;
    double result2=0.0;
+   double result3=0.0;
 
    if(!GetSelectedOrderSnapshot(ticket1,type1,lots1,result1))
       return false;
 
    //===============================================================
-   // CREDITO DUPLO: T1 + T2 sao duas WINs distintas.
-   // O SENTINEL procura automaticamente a LOSS mais negativa da
-   // cesta e usa o lucro das duas WINs como pool de credito.
+   // REGRA DO REDUCE:
+   // T1 = ordem LOSS que sera reduzida.
+   // T2/T3 = ordens WIN que fornecem o credito.
+   // Entre T2 e T3, a maior WIN e consumida primeiro.
    //===============================================================
-   if(ticket2>0 &&
-      result1>0.00000001 &&
-      result2>0.00000001)
+   if(ticket2>0 || ticket3>0)
    {
-      g_selectedCreditMode=true;
-      g_selectedCreditTicket1=ticket1;
-      g_selectedCreditTicket2=ticket2;
-      g_selectedCreditLots1=lots1;
-      g_selectedCreditLots2=lots2;
-      g_selectedCreditResult1=result1;
-      g_selectedCreditResult2=result2;
-      g_selectedCreditMoney=result1+result2;
-
-      int lossTicket=-1;
-      double lossLots=0.0;
-      double lossResult=0.0;
-
-      // T3 pode representar explicitamente a LOSS que sera reduzida.
-      // Se T3 nao estiver selecionada, a LOSS mais negativa da cesta
-      // continua sendo encontrada automaticamente.
-      if(GetSelectedTicket(3)>0)
-      {
-         int ticket3=GetSelectedTicket(3);
-
-         if(ticket3<=0)
-            return false;
-
-         int type3=-1;
-
-         if(!GetSelectedOrderSnapshot(
-            ticket3,
-            type3,
-            lossLots,
-            lossResult))
-            return false;
-
-         if(lossResult>=-0.00000001)
-            return false;
-
-         lossTicket=ticket3;
-      }
-
-      if(lossTicket<0)
-      for(int i=OrdersTotal()-1;i>=0;i--)
-      {
-         if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))
-            continue;
-
-         if(!IsOurOrder())
-            continue;
-
-         int type=OrderType();
-
-         if(type!=OP_BUY && type!=OP_SELL)
-            continue;
-
-         int currentTicket=OrderTicket();
-
-         // As duas ordens selecionadas sao somente credito.
-         if(currentTicket==ticket1 || currentTicket==ticket2)
-            continue;
-
-         double currentResult=
-            OrderProfit()+
-            OrderSwap()+
-            OrderCommission();
-
-         if(currentResult>=-0.00000001)
-            continue;
-
-         if(lossTicket<0 || currentResult<lossResult)
-         {
-            lossTicket=currentTicket;
-            lossLots=OrderLots();
-            lossResult=currentResult;
-         }
-      }
-
-      if(lossTicket<0 || lossLots<=0.0)
+      if(result1>=-0.00000001)
          return false;
+
+      if(ticket2<=0)
+         return false;
+
+      if(!GetSelectedOrderSnapshot(ticket2,type2,lots2,result2))
+         return false;
+
+      if(result2<=0.00000001)
+         return false;
+
+      if(ticket3>0)
+      {
+         if(!GetSelectedOrderSnapshot(ticket3,type3,lots3,result3))
+            return false;
+
+         if(result3<=0.00000001)
+            return false;
+      }
+
+      g_selectedTargetTicket=ticket1;
+      g_selectedTargetLots=lots1;
+      g_selectedTargetResult=result1;
 
       double requested=NormalizeLots(g_selectedLots);
 
       if(requested<=0.0)
          return false;
 
-      g_selectedTargetTicket=lossTicket;
-      g_selectedTargetLots=lossLots;
-      g_selectedTargetResult=lossResult;
-      g_selectedReferenceTicket=ticket1;
-      g_selectedReferenceLots=lots1;
-      g_selectedReferenceResult=result1;
-
-      g_selectedLossCloseLots=
-         NormalizeLots(
-            MathMin(
-               requested,
-               lossLots
-            )
-         );
-
-      if(g_selectedLossCloseLots<=0.0)
-         return false;
-
-      double lossRealized=
-         lossResult*
-         g_selectedLossCloseLots/
-         lossLots;
-
-      g_selectedCreditRequiredMoney=
-         MathAbs(lossRealized)+
-         MathMax(0.0,g_autoReduceMinProfit);
-
-      if(g_selectedCreditMoney<=0.0)
-         return false;
-
-      // Distribui a necessidade de credito proporcionalmente entre
-      // as duas WINs. Assim, quando houver credito suficiente,
-      // ambas participam da realizacao.
-      double totalCreditLots=
-         lots1+lots2;
-
-      if(totalCreditLots<=0.0)
-         return false;
-
-      double desired1=
-         g_selectedCreditRequiredMoney*
-         lots1/
-         totalCreditLots;
-
-      double desired2=
-         g_selectedCreditRequiredMoney*
-         lots2/
-         totalCreditLots;
-
-      double profitPerLot1=
-         result1/lots1;
-
-      double profitPerLot2=
-         result2/lots2;
-
-      if(profitPerLot1<=0.0 || profitPerLot2<=0.0)
-         return false;
-
-      g_selectedCreditExecutionLots1=
-         MathMin(
-            lots1,
-            NormalizeLotsUp(
-               desired1/profitPerLot1
-            )
-         );
-
-      g_selectedCreditExecutionLots2=
-         MathMin(
-            lots2,
-            NormalizeLotsUp(
-               desired2/profitPerLot2
-            )
-         );
-
-      g_selectedCreditExecutionLots1=
-         NormalizeLots(g_selectedCreditExecutionLots1);
-
-      g_selectedCreditExecutionLots2=
-         NormalizeLots(g_selectedCreditExecutionLots2);
-
-      double creditExecution=
-         result1*
-         g_selectedCreditExecutionLots1/
-         lots1+
-         result2*
-         g_selectedCreditExecutionLots2/
-         lots2;
-
-      // Se o arredondamento/limite deixou credito insuficiente,
-      // completa a necessidade usando a segunda WIN.
-      double remaining=
-         g_selectedCreditRequiredMoney-
-         creditExecution;
-
-      if(remaining>0.00000001)
-      {
-         double extra2=
-            NormalizeLotsUp(
-               remaining/profitPerLot2
-            );
-
-         double available2=
-            NormalizeLots(
-               MathMax(
-                  0.0,
-                  lots2-
-                  g_selectedCreditExecutionLots2
-               )
-            );
-
-         extra2=MathMin(extra2,available2);
-
-         g_selectedCreditExecutionLots2=
-            NormalizeLots(
-               g_selectedCreditExecutionLots2+
-               extra2
-            );
-
-         creditExecution=
-            result1*
-            g_selectedCreditExecutionLots1/
-            lots1+
-            result2*
-            g_selectedCreditExecutionLots2/
-            lots2;
-      }
-
-      g_selectedCreditProjectedProfit=
-         creditExecution+
-         lossRealized;
-
-      g_selectedCreditReady=
-         (creditExecution+0.00000001>=
-          g_selectedCreditRequiredMoney &&
-          g_selectedCreditProjectedProfit>=
-          g_autoReduceMinProfit-0.00000001);
-
-      g_selectedEconomicReady=
-         g_selectedCreditReady;
-
-      g_selectedPlanValid=true;
-      return true;
-   }
-
-   if(ticket2<=0)
-   {
-      g_selectedTargetTicket=ticket1;
-      g_selectedTargetLots=lots1;
-      g_selectedTargetResult=result1;
-   }
-   else
-   {
-      if(!GetSelectedOrderSnapshot(ticket2,type2,lots2,result2))
-         return false;
-
-      if(result1>0.00000001 && result2<-0.00000001)
-      {
-         g_selectedTargetTicket=ticket2;
-         g_selectedReferenceTicket=ticket1;
-         g_selectedTargetLots=lots2;
-         g_selectedReferenceLots=lots1;
-         g_selectedTargetResult=result2;
-         g_selectedReferenceResult=result1;
-      }
-      else
-      if(result2>0.00000001 && result1<-0.00000001)
-      {
-         g_selectedTargetTicket=ticket1;
-         g_selectedReferenceTicket=ticket2;
-         g_selectedTargetLots=lots1;
-         g_selectedReferenceLots=lots2;
-         g_selectedTargetResult=result1;
-         g_selectedReferenceResult=result2;
-      }
-      else
-      if(result1>0.00000001 && result2>0.00000001)
-      {
-         if(lots1<=lots2)
-         {
-            g_selectedTargetTicket=ticket1;
-            g_selectedReferenceTicket=ticket2;
-            g_selectedTargetLots=lots1;
-            g_selectedReferenceLots=lots2;
-            g_selectedTargetResult=result1;
-            g_selectedReferenceResult=result2;
-         }
-         else
-         {
-            g_selectedTargetTicket=ticket2;
-            g_selectedReferenceTicket=ticket1;
-            g_selectedTargetLots=lots2;
-            g_selectedReferenceLots=lots1;
-            g_selectedTargetResult=result2;
-            g_selectedReferenceResult=result1;
-         }
-      }
-      else
-      {
-         g_selectedTargetTicket=ticket1;
-         g_selectedReferenceTicket=ticket2;
-         g_selectedTargetLots=lots1;
-         g_selectedReferenceLots=lots2;
-         g_selectedTargetResult=result1;
-         g_selectedReferenceResult=result2;
-      }
-   }
-
-   double requested=NormalizeLots(g_selectedLots);
-
-   if(requested<=0.0)
-      return false;
-
-   bool winLossPair=
-      (g_selectedReferenceTicket>0 &&
-       g_selectedTargetResult<-0.00000001 &&
-       g_selectedReferenceResult>0.00000001);
-
-   if(winLossPair)
-   {
       g_selectedLossCloseLots=
          NormalizeLots(
             MathMin(
@@ -1970,56 +1708,161 @@ bool BuildSelectedReductionPlan()
          return false;
 
       double lossRealized=
-         g_selectedTargetResult*
+         result1*
          g_selectedLossCloseLots/
-         g_selectedTargetLots;
+         lots1;
 
-      g_selectedWinRequiredMoney=
+      g_selectedCreditRequiredMoney=
          MathAbs(lossRealized)+
          MathMax(0.0,g_autoReduceMinProfit);
 
-      double winMoneyPerLot=
-         g_selectedReferenceResult/
-         g_selectedReferenceLots;
+      // Ordena T2/T3 pelo lucro. A maior WIN sempre e consumida primeiro.
+      int creditTicketA=ticket2;
+      double creditLotsA=lots2;
+      double creditResultA=result2;
+      int creditSlotA=2;
 
-      if(winMoneyPerLot<=0.0)
+      int creditTicketB=-1;
+      double creditLotsB=0.0;
+      double creditResultB=0.0;
+      int creditSlotB=0;
+
+      if(ticket3>0)
+      {
+         creditTicketB=ticket3;
+         creditLotsB=lots3;
+         creditResultB=result3;
+         creditSlotB=3;
+
+         if(creditResultB>creditResultA)
+         {
+            int swapTicket=creditTicketA;
+            creditTicketA=creditTicketB;
+            creditTicketB=swapTicket;
+
+            double swapLots=creditLotsA;
+            creditLotsA=creditLotsB;
+            creditLotsB=swapLots;
+
+            double swapResult=creditResultA;
+            creditResultA=creditResultB;
+            creditResultB=swapResult;
+
+            int swapSlot=creditSlotA;
+            creditSlotA=creditSlotB;
+            creditSlotB=swapSlot;
+         }
+      }
+
+      g_selectedCreditMode=true;
+
+      g_selectedCreditTicket1=creditTicketA;
+      g_selectedCreditTicket2=creditTicketB;
+      g_selectedCreditLots1=creditLotsA;
+      g_selectedCreditLots2=creditLotsB;
+      g_selectedCreditResult1=creditResultA;
+      g_selectedCreditResult2=creditResultB;
+      g_selectedCreditSlot1=creditSlotA;
+      g_selectedCreditSlot2=creditSlotB;
+
+      g_selectedCreditMoney=
+         creditResultA+
+         MathMax(0.0,creditResultB);
+
+      double remaining=
+         g_selectedCreditRequiredMoney;
+
+      double profitPerLotA=
+         creditResultA/creditLotsA;
+
+      if(profitPerLotA<=0.0)
          return false;
 
-      g_selectedWinCalculatedLots=
-         g_selectedWinRequiredMoney/
-         winMoneyPerLot;
-
-      g_selectedWinExecutionLots=
-         NormalizeLotsUp(
-            g_selectedWinCalculatedLots
+      // Primeiro consome a maior WIN, podendo chegar a 100%.
+      g_selectedCreditExecutionLots1=
+         NormalizeLots(
+            MathMin(
+               creditLotsA,
+               NormalizeLotsUp(
+                  remaining/profitPerLotA
+               )
+            )
          );
 
-      if(g_selectedWinExecutionLots<=0.0)
-         return false;
+      double creditUsedA=
+         creditResultA*
+         g_selectedCreditExecutionLots1/
+         creditLotsA;
 
-      g_selectedProjectedProfit=
-         g_selectedReferenceResult*
-         MathMin(
-            g_selectedWinExecutionLots,
-            g_selectedReferenceLots
-         )/
-         g_selectedReferenceLots+
+      remaining-=creditUsedA;
+
+      // So usa a segunda WIN se a primeira nao foi suficiente.
+      if(creditTicketB>0 && remaining>0.00000001)
+      {
+         double profitPerLotB=
+            creditResultB/creditLotsB;
+
+         if(profitPerLotB<=0.0)
+            return false;
+
+         g_selectedCreditExecutionLots2=
+            NormalizeLots(
+               MathMin(
+                  creditLotsB,
+                  NormalizeLotsUp(
+                     remaining/profitPerLotB
+                  )
+               )
+            );
+      }
+
+      double creditExecution=
+         creditResultA*
+         g_selectedCreditExecutionLots1/
+         creditLotsA;
+
+      if(creditTicketB>0 && creditLotsB>0.0)
+      {
+         creditExecution+=
+            creditResultB*
+            g_selectedCreditExecutionLots2/
+            creditLotsB;
+      }
+
+      g_selectedCreditProjectedProfit=
+         creditExecution+
          lossRealized;
 
-      g_selectedEconomicReady=
-         (g_selectedWinExecutionLots<=
-          g_selectedReferenceLots+0.00000001 &&
-          g_selectedProjectedProfit>=
-          g_autoReduceMinProfit-0.00000001);
+      g_selectedCreditReady=
+         (
+            creditExecution+0.00000001>=
+            g_selectedCreditRequiredMoney &&
+            g_selectedCreditProjectedProfit>=
+            g_autoReduceMinProfit-0.00000001
+         );
+
+      g_selectedEconomicReady=g_selectedCreditReady;
+
+      g_selectedReferenceTicket=
+         g_selectedCreditTicket1;
+      g_selectedReferenceLots=
+         g_selectedCreditLots1;
+      g_selectedReferenceResult=
+         g_selectedCreditResult1;
 
       g_selectedPlanValid=true;
       return true;
    }
 
+   // Uma unica selecao continua significando REDUCE direto.
+   g_selectedTargetTicket=ticket1;
+   g_selectedTargetLots=lots1;
+   g_selectedTargetResult=result1;
+
    g_selectedReduceLots=
       NormalizeLots(
          MathMin(
-            requested,
+            NormalizeLots(g_selectedLots),
             g_selectedTargetLots
          )
       );
@@ -2546,77 +2389,116 @@ bool ExecuteSelectedReduction()
       return false;
    }
 
-   bool economicPair=
-      (g_selectedReferenceTicket>0 &&
-       g_selectedTargetResult<-0.00000001 &&
-       g_selectedReferenceResult>0.00000001);
-
-   if(economicPair)
+   // T1 = LOSS alvo.
+   // T2/T3 = WINs credito, consumidas da maior para a menor.
+   if(g_selectedCreditMode)
    {
       if(!g_selectedEconomicReady)
       {
          SetStatus(
-            "REDUCE AGUARDAR "+FormatMoney(g_selectedWinRequiredMoney),
+            "REDUCE AGUARDAR "+FormatMoney(g_selectedCreditRequiredMoney),
             InpStopColor
          );
          return false;
       }
 
       int lossTicket=g_selectedTargetTicket;
-      int winTicket=g_selectedReferenceTicket;
 
-      double winCloseLots=g_selectedWinExecutionLots;
-      double lossCloseLots=g_selectedLossCloseLots;
-
-      if(!OrderSelect(winTicket,SELECT_BY_TICKET,MODE_TRADES) ||
-         !IsOurOrder() ||
-         (OrderType()!=OP_BUY && OrderType()!=OP_SELL) ||
-         OrderLots()<winCloseLots)
-      {
-         SetStatus("WIN INVALIDA",InpStopColor);
-         return false;
-      }
-
-      ResetLastError();
-
-      if(!PartialCloseTicket(winTicket,winCloseLots))
-      {
-         int errWin=GetLastError();
-         SetStatus(
-            "REDUCE WIN ERRO "+IntegerToString(errWin),
-            InpStopColor
-         );
-         return false;
-      }
-
+      // Valida todas as ordens antes de executar qualquer fechamento.
       if(!OrderSelect(lossTicket,SELECT_BY_TICKET,MODE_TRADES) ||
          !IsOurOrder() ||
          (OrderType()!=OP_BUY && OrderType()!=OP_SELL) ||
-         OrderLots()<lossCloseLots)
+         OrderLots()<g_selectedLossCloseLots)
+      {
+         SetStatus("LOSS INVALIDA",InpStopColor);
+         return false;
+      }
+
+      if(!OrderSelect(
+         g_selectedCreditTicket1,
+         SELECT_BY_TICKET,
+         MODE_TRADES) ||
+         !IsOurOrder() ||
+         (OrderType()!=OP_BUY && OrderType()!=OP_SELL) ||
+         OrderLots()<g_selectedCreditExecutionLots1)
+      {
+         SetStatus("CREDITO 1 INVALIDO",InpStopColor);
+         return false;
+      }
+
+      if(g_selectedCreditTicket2>0 &&
+         g_selectedCreditExecutionLots2>0.0)
+      {
+         if(!OrderSelect(
+            g_selectedCreditTicket2,
+            SELECT_BY_TICKET,
+            MODE_TRADES) ||
+            !IsOurOrder() ||
+            (OrderType()!=OP_BUY && OrderType()!=OP_SELL) ||
+            OrderLots()<g_selectedCreditExecutionLots2)
+         {
+            SetStatus("CREDITO 2 INVALIDO",InpStopColor);
+            return false;
+         }
+      }
+
+      // Primeiro consome a WIN mais positiva.
+      ResetLastError();
+
+      if(!PartialCloseTicket(
+         g_selectedCreditTicket1,
+         g_selectedCreditExecutionLots1))
       {
          SetStatus(
-            "REDUCE WIN OK LOSS INVALIDA",
+            "CREDITO 1 ERRO "+IntegerToString(GetLastError()),
             InpStopColor
          );
          return false;
       }
 
+      // A segunda WIN somente participa se o credito da primeira foi insuficiente.
+      if(g_selectedCreditTicket2>0 &&
+         g_selectedCreditExecutionLots2>0.0)
+      {
+         ResetLastError();
+
+         if(!PartialCloseTicket(
+            g_selectedCreditTicket2,
+            g_selectedCreditExecutionLots2))
+         {
+            SetStatus(
+               "CREDITO 1 OK CREDITO 2 ERRO "+
+               IntegerToString(GetLastError()),
+               InpStopColor
+            );
+            return false;
+         }
+      }
+
+      // Finalmente reduz a LOSS T1.
       ResetLastError();
 
-      if(!PartialCloseTicket(lossTicket,lossCloseLots))
+      if(!PartialCloseTicket(
+         lossTicket,
+         g_selectedLossCloseLots))
       {
-         int errLoss=GetLastError();
          SetStatus(
-            "REDUCE WIN OK LOSS ERRO "+IntegerToString(errLoss),
+            "CREDITO OK LOSS ERRO "+
+            IntegerToString(GetLastError()),
             InpStopColor
          );
          return false;
       }
 
       SetStatus(
-         "REDUCE +"+DoubleToString(g_selectedProjectedProfit,2)+
-         " WIN "+DoubleToString(winCloseLots,2)+
-         " LOSS "+DoubleToString(lossCloseLots,2),
+         "REDUCE "+
+         FormatMoney(g_selectedCreditProjectedProfit)+
+         " LOSS "+
+         DoubleToString(g_selectedLossCloseLots,2)+
+         " C1 "+
+         DoubleToString(g_selectedCreditExecutionLots1,2)+
+         " C2 "+
+         DoubleToString(g_selectedCreditExecutionLots2,2),
          InpProfitColor
       );
 
@@ -2624,6 +2506,7 @@ bool ExecuteSelectedReduction()
       return true;
    }
 
+   // Uma unica selecao continua sendo REDUCE direto.
    int ticket=g_selectedTargetTicket;
 
    if(!OrderSelect(ticket,SELECT_BY_TICKET,MODE_TRADES))
@@ -2921,15 +2804,11 @@ void RenderSelectedOrderLines()
          continue;
       }
 
-      // Convencao visual da CESTA:
-      // T1 = ordem a ser reduzida -> cor de destaque.
-      // T2/T3 = ordens positivas que geram credito -> mesma cor.
-      color lineColor=clrLimeGreen;
-
-      if(slot==1)
-         lineColor=clrRed;
-      else
-         lineColor=clrLimeGreen;
+      // Convencao visual do REDUCE:
+      // T1 = LOSS que sera reduzida -> VERMELHO.
+      // T2/T3 = WINs que fornecem credito -> VERDE.
+      color lineColor=
+         (slot==1 ? clrRed : InpProfitColor);
 
       // Marcacao visual curta, como no mecanismo original:
       // segmento tracejado, sem atravessar todo o grafico.
@@ -2944,6 +2823,7 @@ void RenderSelectedOrderLines()
       );
 
       string text=
+         (slot==1 ? "REDUCE " : "CREDIT ")+
          "T"+IntegerToString(slot)+
          " #"+IntegerToString(ticket)+
          " "+
@@ -3022,13 +2902,13 @@ void UpdateSelectedReductionLines()
    CreateSegmentHLine(
       OBJ_LINE_SELECTED_TARGET,
       targetPrice,
-      clrGold,
+      clrRed,
       STYLE_SOLID,
       2
    );
 
    string targetText=
-      "TARGET  T"+
+      "REDUCE  T1 #"+
       IntegerToString(g_selectedTargetTicket)+
       " | "+
       SelectedTypeText(g_selectedTargetTicket)+
@@ -3041,7 +2921,7 @@ void UpdateSelectedReductionLines()
          OBJ_TXT_SELECTED_TARGET,
          targetText,
          targetPrice,
-         clrGold
+         clrRed
       );
    }
    else
@@ -3064,7 +2944,7 @@ void UpdateSelectedReductionLines()
          0,
          OBJ_TXT_SELECTED_TARGET,
          OBJPROP_COLOR,
-         clrGold
+         clrRed
       );
    }
 
@@ -3087,7 +2967,7 @@ void UpdateSelectedReductionLines()
          );
 
          string credit1Text=
-            "CREDITO T1  #"+IntegerToString(g_selectedCreditTicket1)+
+            "CREDIT T"+IntegerToString(g_selectedCreditSlot1)+"  #"+IntegerToString(g_selectedCreditTicket1)+
             " | "+DoubleToString(g_selectedCreditExecutionLots1,2);
 
          if(ObjectFind(0,OBJ_TXT_SELECTED_REFERENCE)<0)
@@ -3121,7 +3001,7 @@ void UpdateSelectedReductionLines()
          );
 
          string credit2Text=
-            "CREDITO T2  #"+IntegerToString(g_selectedCreditTicket2)+
+            "CREDIT T"+IntegerToString(g_selectedCreditSlot2)+"  #"+IntegerToString(g_selectedCreditTicket2)+
             " | "+DoubleToString(g_selectedCreditExecutionLots2,2);
 
          if(ObjectFind(0,credit2TextName)<0)
