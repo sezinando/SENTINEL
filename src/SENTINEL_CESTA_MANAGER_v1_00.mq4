@@ -99,6 +99,11 @@ input int      InpNeutralBorderWidth  = 1;
 // Cor do botao REDUCE BxS.
 input color    InpReduceButtonColor = clrGold;
 input color    InpReduceTextColor   = clrBlack;
+// Cores da selecao operacional:
+// T1 = ordem que sera reduzida.
+// T2/T3 = ordens que fornecem credito.
+input color    InpReduceSelectionColor = clrRed;
+input color    InpCreditSelectionColor = clrLimeGreen;
 input color    InpSelectedButtonColor = clrGold;
 
 
@@ -1320,6 +1325,23 @@ void PrintOrderDiscoveryDiagnostic()
 }
 
 //====================================================================
+// COR DA SELECAO OPERACIONAL
+//====================================================================
+
+color GetSelectionButtonColor(int ticket)
+{
+   int slot=FindSelectedSlot(ticket);
+
+   if(slot==1)
+      return InpReduceSelectionColor;
+
+   if(slot==2 || slot==3)
+      return InpCreditSelectionColor;
+
+   return clrNONE;
+}
+
+//====================================================================
 // RENDER
 //====================================================================
 
@@ -1453,9 +1475,9 @@ void RenderPanel()
             y+
             buyRow*
             (InpButtonHeight+5),
-            IsSelectedTicket(wins[i].ticket) ?
-            InpSelectedButtonColor :
-            InpBuyButtonColor,
+            (IsSelectedTicket(wins[i].ticket) ?
+             GetSelectionButtonColor(wins[i].ticket) :
+             InpBuyButtonColor),
             InpButtonTextColor,
             (wins[i].result>0.00000001 ?
              InpPositiveBorderColor :
@@ -1501,9 +1523,9 @@ void RenderPanel()
             y+
             sellRow*
             (InpButtonHeight+5),
-            IsSelectedTicket(wins[i].ticket) ?
-            InpSelectedButtonColor :
-            InpSellButtonColor,
+            (IsSelectedTicket(wins[i].ticket) ?
+             GetSelectionButtonColor(wins[i].ticket) :
+             InpSellButtonColor),
             InpButtonTextColor,
             (wins[i].result>0.00000001 ? clrDodgerBlue : clrDimGray)
          );
