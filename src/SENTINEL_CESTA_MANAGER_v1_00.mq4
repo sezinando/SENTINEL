@@ -1744,6 +1744,15 @@ void PollTesterSelectionButtons()
       if(ProcessTesterSelectionButtonState(PREFIX+"BTN_SELL_"+IntegerToString(i)))
          return;
    }
+
+   // No Strategy Tester Visual, o REDUCE tambem precisa ser
+   // encaminhado pela ponte de Global Variables.
+   if(ProcessTesterSelectionButtonState(PREFIX+"BTN_REDUCE_BXS"))
+   {
+      if(GetSingleSelectedTicket()>0)
+         RequestSelectedReduction();
+      return;
+   }
 }
 
 //====================================================================
