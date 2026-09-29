@@ -1854,6 +1854,11 @@ bool BuildSelectedReductionPlan()
       return true;
    }
 
+   // Uma unica selecao tambem respeita a semantica:
+   // T1 deve ser uma LOSS a ser reduzida.
+   if(result1>=-0.00000001)
+      return false;
+
    // Uma unica selecao continua significando REDUCE direto.
    g_selectedTargetTicket=ticket1;
    g_selectedTargetLots=lots1;
@@ -2560,13 +2565,16 @@ string GetAutoReduceGroupSignature()
 {
    int ticket1=GetSelectedTicket(1);
    int ticket2=GetSelectedTicket(2);
+   int ticket3=GetSelectedTicket(3);
 
    if(ticket1<=0)
       return "";
 
    return IntegerToString(ticket1)+
           ":"+
-          IntegerToString(ticket2);
+          IntegerToString(ticket2)+
+          ":"+
+          IntegerToString(ticket3);
 }
 
 void EvaluateAutoReduce()
@@ -2611,8 +2619,12 @@ void EvaluateAutoReduce()
       g_processing=true;
 
       SetStatus(
-         "AUTO REDUCE WIN "+
-         DoubleToString(g_selectedWinExecutionLots,2)+
+         "AUTO REDUCE CREDIT "+
+         DoubleToString(
+            g_selectedCreditExecutionLots1+
+            g_selectedCreditExecutionLots2,
+            2
+         )+
          " LOSS "+
          DoubleToString(g_selectedLossCloseLots,2),
          InpProfitColor
@@ -2913,7 +2925,12 @@ void UpdateSelectedReductionLines()
       " | "+
       SelectedTypeText(g_selectedTargetTicket)+
       " | RED "+
-      DoubleToString(g_selectedReduceLots,2);
+      DoubleToString(
+         g_selectedCreditMode ?
+         g_selectedLossCloseLots :
+         g_selectedReduceLots,
+         2
+      );
 
    if(ObjectFind(0,OBJ_TXT_SELECTED_TARGET)<0)
    {
