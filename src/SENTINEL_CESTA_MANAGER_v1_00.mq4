@@ -192,12 +192,13 @@ int FindSelectedSlot(int ticket)
    return 0;
 }
 
-// Retorna a unica ordem selecionada quando ela esta positiva.
-// Esse caso habilita REDUCE direto sem exigir uma LOSS ou outra WIN.
-int GetSingleSelectedWinningTicket()
+// Retorna a unica ordem selecionada, independentemente de resultado.
+// Uma WIN ou uma LOSS isolada pode ser reduzida diretamente.
+// O SENTINEL decide o lote parcial/total e executa o fechamento.
+int GetSingleSelectedTicket()
 {
    int selectedCount=0;
-   int winningTicket=-1;
+   int selectedTicket=-1;
 
    for(int slot=1;slot<=3;slot++)
    {
@@ -207,13 +208,11 @@ int GetSingleSelectedWinningTicket()
          continue;
 
       selectedCount++;
-
-      if(GetSelectionOrderResult(ticket)>0.00000001)
-         winningTicket=ticket;
+      selectedTicket=ticket;
    }
 
-   if(selectedCount==1 && winningTicket>0)
-      return winningTicket;
+   if(selectedCount==1 && selectedTicket>0)
+      return selectedTicket;
 
    return -1;
 }
@@ -1669,12 +1668,12 @@ void RenderPanel()
    }
 
    // REDUCE:
-   // 1) WIN isolada selecionada -> REDUCE WIN direto.
+   // 1) uma unica ordem selecionada (WIN ou LOSS) -> REDUCE direto.
    // 2) BUY WIN + SELL WIN -> REDUCE BxS tradicional.
-   int singleSelectedWinningTicket=GetSingleSelectedWinningTicket();
+   int singleSelectedTicket=GetSingleSelectedTicket();
 
    if((buyCount>0 && sellCount>0) ||
-      singleSelectedWinningTicket>0)
+      singleSelectedTicket>0)
    {
       int bottomY=
          InpPanelY+
@@ -1684,8 +1683,8 @@ void RenderPanel()
          4;
 
       string reduceText=
-         (singleSelectedWinningTicket>0) ?
-         "REDUCE WIN" :
+         (singleSelectedTicket>0) ?
+         "REDUCE SELECIONADO" :
          "REDUCE BxS  ELEGIVEL";
 
       CreateActionButton(
@@ -1797,14 +1796,14 @@ void OnChartEvent(
          int singleWinningTicket=
             GetSingleSelectedWinningTicket();
 
-         if(singleWinningTicket>0)
+         if(singleSelectedTicket>0)
          {
             RequestSelectedReduction();
 
             Print(
                "SENTINEL CESTA MANAGER: "
-               "REDUCE WIN solicitado. TICKET=",
-               singleWinningTicket
+               "REDUCE SELECIONADO solicitado. TICKET=",
+               singleSelectedTicket
             );
          }
          else
