@@ -1341,6 +1341,9 @@ input color InpStopColor      = clrRed;
 #define OBJ_LBL_RECOVERY_TELEMETRY PREFIX+"LBL_RECOVERY_TELEMETRY"
 #define OBJ_LBL_BASKET_BUY_VALUE PREFIX+"LBL_BASKET_BUY_VALUE"
 #define OBJ_LBL_BASKET_SELL_VALUE PREFIX+"LBL_BASKET_SELL_VALUE"
+#define OBJ_LBL_DECISION_ACTION      PREFIX+"LBL_DECISION_ACTION"
+#define OBJ_LBL_DECISION_ENTRY       PREFIX+"LBL_DECISION_ENTRY"
+#define OBJ_LBL_DECISION_REDUCE      PREFIX+"LBL_DECISION_REDUCE"
 #define OBJ_EDIT_AUTO_MIN        PREFIX+"EDIT_AUTO_MIN"
 #define OBJ_LBL_GROUP_TITLE    PREFIX+"LBL_GROUP_TITLE"
 #define OBJ_LBL_GROUP_TARGET   PREFIX+"LBL_GROUP_TARGET"
@@ -9378,6 +9381,55 @@ void BuildInterface()
    ObjectSetString(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_FONT,"Segoe UI");
    ObjectSetString(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_TEXT,"SELL: "+FormatMoney(0.0));
 
+   // DECISAO OPERACIONAL: canto superior direito.
+   if(ObjectFind(0,OBJ_LBL_DECISION_ACTION)<0)
+      ObjectCreate(0,OBJ_LBL_DECISION_ACTION,OBJ_LABEL,0,0,0);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ACTION,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ACTION,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ACTION,OBJPROP_XDISTANCE,10);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ACTION,OBJPROP_YDISTANCE,72);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ACTION,OBJPROP_FONTSIZE,9);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ACTION,OBJPROP_COLOR,UI_COLOR_TEXT_MAIN);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ACTION,OBJPROP_SELECTABLE,false);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ACTION,OBJPROP_SELECTED,false);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ACTION,OBJPROP_BACK,true);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ACTION,OBJPROP_HIDDEN,false);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ACTION,OBJPROP_ZORDER,1);
+   ObjectSetString(0,OBJ_LBL_DECISION_ACTION,OBJPROP_FONT,"Segoe UI");
+   ObjectSetString(0,OBJ_LBL_DECISION_ACTION,OBJPROP_TEXT,"ACAO: AGUARDAR");
+
+   if(ObjectFind(0,OBJ_LBL_DECISION_ENTRY)<0)
+      ObjectCreate(0,OBJ_LBL_DECISION_ENTRY,OBJ_LABEL,0,0,0);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ENTRY,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ENTRY,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ENTRY,OBJPROP_XDISTANCE,10);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ENTRY,OBJPROP_YDISTANCE,90);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ENTRY,OBJPROP_FONTSIZE,8);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ENTRY,OBJPROP_COLOR,UI_COLOR_TEXT_MUTED);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ENTRY,OBJPROP_SELECTABLE,false);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ENTRY,OBJPROP_SELECTED,false);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ENTRY,OBJPROP_BACK,true);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ENTRY,OBJPROP_HIDDEN,false);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_ENTRY,OBJPROP_ZORDER,1);
+   ObjectSetString(0,OBJ_LBL_DECISION_ENTRY,OBJPROP_FONT,"Segoe UI");
+   ObjectSetString(0,OBJ_LBL_DECISION_ENTRY,OBJPROP_TEXT,"ENTRADA: --");
+
+   if(ObjectFind(0,OBJ_LBL_DECISION_REDUCE)<0)
+      ObjectCreate(0,OBJ_LBL_DECISION_REDUCE,OBJ_LABEL,0,0,0);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_REDUCE,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_REDUCE,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_REDUCE,OBJPROP_XDISTANCE,10);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_REDUCE,OBJPROP_YDISTANCE,106);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_REDUCE,OBJPROP_FONTSIZE,8);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_REDUCE,OBJPROP_COLOR,UI_COLOR_TEXT_MUTED);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_REDUCE,OBJPROP_SELECTABLE,false);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_REDUCE,OBJPROP_SELECTED,false);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_REDUCE,OBJPROP_BACK,true);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_REDUCE,OBJPROP_HIDDEN,false);
+   ObjectSetInteger(0,OBJ_LBL_DECISION_REDUCE,OBJPROP_ZORDER,1);
+   ObjectSetString(0,OBJ_LBL_DECISION_REDUCE,OBJPROP_FONT,"Segoe UI");
+   ObjectSetString(0,OBJ_LBL_DECISION_REDUCE,OBJPROP_TEXT,"REDUCE: --");
+
    // Telemetria Recovery/Trailing: somente texto, sem fundo.
    if(ObjectFind(0,OBJ_LBL_RECOVERY_TELEMETRY)<0)
       ObjectCreate(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJ_LABEL,0,0,0);
@@ -9552,6 +9604,173 @@ void UpdateATRContextPanel()
 }
 
 //====================================================================
+// DECISAO OPERACIONAL — EXPOSICAO
+//====================================================================
+
+void UpdateExposureDecisionPanel()
+{
+   if(ObjectFind(0,OBJ_LBL_DECISION_ACTION)<0)
+      return;
+
+   // Camada somente orientativa. Nao envia ordens.
+   double buyLots=GetBuyLots();
+   double sellLots=GetSellLots();
+   double exposure=buyLots+sellLots;
+
+   double buyProfit=GetBuyOpenProfit();
+   double sellProfit=GetSellOpenProfit();
+
+   double baseLot=g_selectedLots;
+   if(baseLot<=0.0)
+      baseLot=InpDefaultLots;
+   baseLot=NormalizeLots(baseLot);
+
+   string action="AGUARDAR";
+   string entryText="ENTRADA: --";
+   string reduceText="REDUCE: --";
+   color actionColor=UI_COLOR_TEXT_MUTED;
+   color entryColor=UI_COLOR_TEXT_MUTED;
+   color reduceColor=UI_COLOR_TEXT_MUTED;
+
+   CalculateEntryEngine();
+
+   bool hasPositions=(exposure>0.00000001);
+
+   if(!hasPositions)
+   {
+      if(StringFind(g_entryAction,"NOVA ENTRADA",0)>=0)
+      {
+         action="NOVA ENTRADA";
+         entryText="BUY  |  LOTE "+DoubleToString(baseLot,2);
+         actionColor=InpBuyColor;
+         entryColor=InpBuyColor;
+      }
+      else
+      {
+         action=g_entryAction;
+         entryText="ENTRADA: "+g_entryAction;
+         actionColor=EntryActionColor();
+         entryColor=actionColor;
+      }
+   }
+   else
+   {
+      // REDUCE experimental: somente quando ha excesso sobre a
+      // unidade-base e um dos lados esta com resultado positivo.
+      double excess=MathMax(0.0,exposure-baseLot);
+
+      if(excess>0.00000001 &&
+         (buyProfit>0.0000001 || sellProfit>0.0000001))
+      {
+         int reduceSide=(sellProfit>buyProfit ? OP_SELL : OP_BUY);
+         double available=(reduceSide==OP_BUY ? buyLots : sellLots);
+         double reduceLots=NormalizeLots(MathMin(excess,available));
+
+         if(reduceLots>0.0)
+         {
+            action="REDUCE";
+            reduceText=
+               "REDUCE "+
+               (reduceSide==OP_BUY ? "BUY" : "SELL")+
+               "  |  LOTE "+DoubleToString(reduceLots,2);
+            actionColor=clrGold;
+            reduceColor=clrGold;
+         }
+      }
+
+      // Se nao houver REDUCE, verifica o gatilho do Recovery existente.
+      if(action=="AGUARDAR" && g_recoveryEnabled)
+      {
+         int ticket=-1;
+         double lastLots=0.0;
+         double lastPrice=0.0;
+         datetime lastTime=0;
+         bool trigger=false;
+
+         if(RecoveryLastMarketOrder(
+               OP_BUY,ticket,lastLots,lastPrice,lastTime))
+         {
+            int level=RecoveryMarketCount(OP_BUY);
+            double required=
+               MathMax(0.0,InpRecoveryTriggerDistance)+
+               MathMax(0.0,RecoveryStepForLevel(level));
+            double adverse=0.0;
+
+            if(RecoveryTriggerReached(
+                  OP_BUY,lastPrice,required,adverse))
+            {
+               double nextLot=NormalizeLots(
+                  RecoveryNextLot(lastLots)
+               );
+
+               if(nextLot>0.0)
+               {
+                  trigger=true;
+                  action="RECOVERY";
+                  actionColor=UI_COLOR_ACCENT;
+                  entryColor=UI_COLOR_ACCENT;
+                  entryText=
+                     "RECOVERY BUY  |  LOTE "+
+                     DoubleToString(nextLot,2);
+               }
+            }
+         }
+
+         if(!trigger &&
+            RecoveryLastMarketOrder(
+               OP_SELL,ticket,lastLots,lastPrice,lastTime))
+         {
+            int level=RecoveryMarketCount(OP_SELL);
+            double required=
+               MathMax(0.0,InpRecoveryTriggerDistance)+
+               MathMax(0.0,RecoveryStepForLevel(level));
+            double adverse=0.0;
+
+            if(RecoveryTriggerReached(
+                  OP_SELL,lastPrice,required,adverse))
+            {
+               double nextLot=NormalizeLots(
+                  RecoveryNextLot(lastLots)
+               );
+
+               if(nextLot>0.0)
+               {
+                  trigger=true;
+                  action="RECOVERY";
+                  actionColor=UI_COLOR_ACCENT;
+                  entryColor=UI_COLOR_ACCENT;
+                  entryText=
+                     "RECOVERY SELL  |  LOTE "+
+                     DoubleToString(nextLot,2);
+               }
+            }
+         }
+      }
+
+      if(action=="AGUARDAR")
+         entryText="ENTRADA: AGUARDAR";
+   }
+
+   UpdateLabel(
+      OBJ_LBL_DECISION_ACTION,
+      "ACAO: "+action,
+      actionColor
+   );
+
+   UpdateLabel(
+      OBJ_LBL_DECISION_ENTRY,
+      entryText,
+      entryColor
+   );
+
+   UpdateLabel(
+      OBJ_LBL_DECISION_REDUCE,
+      reduceText,
+      reduceColor
+   );
+}
+
+//====================================================================
 // ATUALIZA PAINEL
 //====================================================================
 
@@ -9587,6 +9806,7 @@ void UpdateInterface()
    PublishTesterOrderBridge();
    UpdateSelectedReductionPanel();
    UpdateRecoveryTelemetry();
+   UpdateExposureDecisionPanel();
 
    ResetAllButtonVisualStates();
 
@@ -10649,6 +10869,9 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_BTN_AUTO_REDUCE);
    DeleteObjectSafe(OBJ_BTN_RECOVERY);
    DeleteObjectSafe(OBJ_LBL_RECOVERY_TELEMETRY);
+   DeleteObjectSafe(OBJ_LBL_DECISION_ACTION);
+   DeleteObjectSafe(OBJ_LBL_DECISION_ENTRY);
+   DeleteObjectSafe(OBJ_LBL_DECISION_REDUCE);
    DeleteObjectSafe(OBJ_LBL_BASKET_BUY_VALUE);
    DeleteObjectSafe(OBJ_LBL_BASKET_SELL_VALUE);
    DeleteObjectSafe(OBJ_EDIT_AUTO_MIN);
