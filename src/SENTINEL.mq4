@@ -1339,6 +1339,8 @@ input color InpStopColor      = clrRed;
 #define OBJ_BTN_AUTO_REDUCE      PREFIX+"BTN_AUTO_REDUCE"
 #define OBJ_BTN_RECOVERY          PREFIX+"BTN_RECOVERY"
 #define OBJ_LBL_RECOVERY_TELEMETRY PREFIX+"LBL_RECOVERY_TELEMETRY"
+#define OBJ_LBL_BASKET_BUY_VALUE PREFIX+"LBL_BASKET_BUY_VALUE"
+#define OBJ_LBL_BASKET_SELL_VALUE PREFIX+"LBL_BASKET_SELL_VALUE"
 #define OBJ_EDIT_AUTO_MIN        PREFIX+"EDIT_AUTO_MIN"
 #define OBJ_LBL_GROUP_TITLE    PREFIX+"LBL_GROUP_TITLE"
 #define OBJ_LBL_GROUP_TARGET   PREFIX+"LBL_GROUP_TARGET"
@@ -3985,6 +3987,52 @@ double GetBasketRealized()
 //====================================================================
 // ABERTO
 //====================================================================
+
+double GetBuyOpenProfit()
+{
+   double result=0.0;
+
+   for(int i=OrdersTotal()-1;i>=0;i--)
+   {
+      if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))
+         continue;
+
+      if(!IsOurOrder())
+         continue;
+
+      if(OrderType()!=OP_BUY)
+         continue;
+
+      result+=OrderProfit();
+      result+=OrderSwap();
+      result+=OrderCommission();
+   }
+
+   return result;
+}
+
+double GetSellOpenProfit()
+{
+   double result=0.0;
+
+   for(int i=OrdersTotal()-1;i>=0;i--)
+   {
+      if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))
+         continue;
+
+      if(!IsOurOrder())
+         continue;
+
+      if(OrderType()!=OP_SELL)
+         continue;
+
+      result+=OrderProfit();
+      result+=OrderSwap();
+      result+=OrderCommission();
+   }
+
+   return result;
+}
 
 double GetOpenProfit()
 {
@@ -9295,6 +9343,41 @@ void BuildInterface()
    CreateButton(OBJ_BTN_RECOVERY,"REC OFF",168,532,58,20,UI_COLOR_NEUTRAL);
    CreateButton(OBJ_BTN_RED,"HED",232,532,58,20,UI_COLOR_ACCENT);
 
+   // CESTAS INDEPENDENTES: resultado financeiro aberto por lado.
+   if(ObjectFind(0,OBJ_LBL_BASKET_BUY_VALUE)<0)
+      ObjectCreate(0,OBJ_LBL_BASKET_BUY_VALUE,OBJ_LABEL,0,0,0);
+
+   ObjectSetInteger(0,OBJ_LBL_BASKET_BUY_VALUE,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_BUY_VALUE,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_BUY_VALUE,OBJPROP_XDISTANCE,10);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_BUY_VALUE,OBJPROP_YDISTANCE,18);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_BUY_VALUE,OBJPROP_FONTSIZE,9);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_BUY_VALUE,OBJPROP_COLOR,InpBuyColor);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_BUY_VALUE,OBJPROP_SELECTABLE,false);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_BUY_VALUE,OBJPROP_SELECTED,false);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_BUY_VALUE,OBJPROP_BACK,true);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_BUY_VALUE,OBJPROP_HIDDEN,false);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_BUY_VALUE,OBJPROP_ZORDER,1);
+   ObjectSetString(0,OBJ_LBL_BASKET_BUY_VALUE,OBJPROP_FONT,"Segoe UI");
+   ObjectSetString(0,OBJ_LBL_BASKET_BUY_VALUE,OBJPROP_TEXT,"BUY: "+FormatMoney(0.0));
+
+   if(ObjectFind(0,OBJ_LBL_BASKET_SELL_VALUE)<0)
+      ObjectCreate(0,OBJ_LBL_BASKET_SELL_VALUE,OBJ_LABEL,0,0,0);
+
+   ObjectSetInteger(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_XDISTANCE,10);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_YDISTANCE,36);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_FONTSIZE,9);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_COLOR,InpSellColor);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_SELECTABLE,false);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_SELECTED,false);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_BACK,true);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_HIDDEN,false);
+   ObjectSetInteger(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_ZORDER,1);
+   ObjectSetString(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_FONT,"Segoe UI");
+   ObjectSetString(0,OBJ_LBL_BASKET_SELL_VALUE,OBJPROP_TEXT,"SELL: "+FormatMoney(0.0));
+
    // Telemetria Recovery/Trailing: somente texto, sem fundo.
    if(ObjectFind(0,OBJ_LBL_RECOVERY_TELEMETRY)<0)
       ObjectCreate(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJ_LABEL,0,0,0);
@@ -9302,7 +9385,7 @@ void BuildInterface()
    ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
    ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
    ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_XDISTANCE,10);
-   ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_YDISTANCE,18);
+   ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_YDISTANCE,54);
    ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_FONTSIZE,8);
    ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_COLOR,UI_COLOR_TEXT_MUTED);
    ObjectSetInteger(0,OBJ_LBL_RECOVERY_TELEMETRY,OBJPROP_SELECTABLE,false);
@@ -9519,6 +9602,21 @@ void UpdateInterface()
 
    double sell=
       GetSellLots();
+
+   double buyBasketValue=GetBuyOpenProfit();
+   double sellBasketValue=GetSellOpenProfit();
+
+   UpdateLabel(
+      OBJ_LBL_BASKET_BUY_VALUE,
+      "BUY: "+FormatMoney(buyBasketValue),
+      buyBasketValue>=0.0 ? InpBuyColor : InpStopColor
+   );
+
+   UpdateLabel(
+      OBJ_LBL_BASKET_SELL_VALUE,
+      "SELL: "+FormatMoney(sellBasketValue),
+      sellBasketValue>=0.0 ? InpSellColor : InpStopColor
+   );
 
    double net=
       buy-sell;
@@ -10551,6 +10649,8 @@ void DeleteAllSentinelObjects()
    DeleteObjectSafe(OBJ_BTN_AUTO_REDUCE);
    DeleteObjectSafe(OBJ_BTN_RECOVERY);
    DeleteObjectSafe(OBJ_LBL_RECOVERY_TELEMETRY);
+   DeleteObjectSafe(OBJ_LBL_BASKET_BUY_VALUE);
+   DeleteObjectSafe(OBJ_LBL_BASKET_SELL_VALUE);
    DeleteObjectSafe(OBJ_EDIT_AUTO_MIN);
    DeleteObjectSafe(PREFIX+"LBL_AUTO_MIN");
    DeleteObjectSafe(PREFIX+"LBL_AUTO_LOTS");
