@@ -10793,9 +10793,10 @@ bool ProcessTesterButtonState(string name)
 
 void PollTesterButtons()
 {
-   if(!IsTesting() || !IsVisualMode())
-      return;
-
+   // Fallback de estado para ambientes em que CHARTEVENT_OBJECT_CLICK
+   // nao chega ao EA (principalmente Strategy Tester Visual).
+   // Tambem pode atuar no grafico normal sem duplicar o clique:
+   // OnChartEvent limpa OBJPROP_STATE antes de retornar.
    if(ProcessTesterButtonState(OBJ_BTN_AUTO_REDUCE)) return;
    if(ProcessTesterButtonState(OBJ_BTN_RECOVERY)) return;
    if(ProcessTesterButtonState(OBJ_BTN_REDUCE_SELECTED)) return;
@@ -10942,8 +10943,10 @@ void OnTick()
 {
    UpdateTodayRealizedPanel();
 
-   // No Strategy Tester Visual, OnChartEvent nao e disparado.
-   // Processamos botoes e campos editaveis antes de UpdateInterface().
+   // Duplo caminho de entrada:
+   // 1) OnChartEvent() para o clique normal;
+   // 2) OBJPROP_STATE como fallback para ambientes onde o evento
+   //    nao chega ao EA. O estado e zerado apos o processamento.
    PollTesterButtons();
    PollTesterEdits();
 
@@ -10977,6 +10980,11 @@ void OnTimer()
    {
       RestoreReduceButtonColor();
    }
+
+   // Segundo ponto de captura do clique. Isso torna a interface
+   // tolerante a falhas de CHARTEVENT_OBJECT_CLICK sem alterar a
+   // logica de negocio dos botoes.
+   PollTesterButtons();
 
    StartBasketIfNeeded();
 
