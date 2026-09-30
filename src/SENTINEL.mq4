@@ -9655,24 +9655,53 @@ void UpdateExposureDecisionPanel()
    }
    else
    {
-      // REDUCE experimental: somente quando ha excesso sobre a
-      // unidade-base e um dos lados esta com resultado positivo.
-      double excess=MathMax(0.0,exposure-baseLot);
+      // REDUCE GROUP:
+      // somente quando existe simultaneamente uma WIN e uma LOSS.
+      // A reducao deve retirar o mesmo volume das duas pernas.
+      // O lote-base e o lote solicitado para a reducao; nao e
+      // correto usar "excesso de exposicao" como volume de close.
+      double winLots=0.0;
+      double lossLots=0.0;
 
-      if(excess>0.00000001 &&
-         (buyProfit>0.0000001 || sellProfit>0.0000001))
+      for(int i=OrdersTotal()-1;i>=0;i--)
       {
-         int reduceSide=(sellProfit>buyProfit ? OP_SELL : OP_BUY);
-         double available=(reduceSide==OP_BUY ? buyLots : sellLots);
-         double reduceLots=NormalizeLots(MathMin(excess,available));
+         if(!OrderSelect(i,SELECT_BY_POS,MODE_TRADES))
+            continue;
+
+         if(!IsOurOrder())
+            continue;
+
+         int type=OrderType();
+         if(type!=OP_BUY && type!=OP_SELL)
+            continue;
+
+         double result=
+            OrderProfit()+
+            OrderSwap()+
+            OrderCommission();
+
+         if(result>0.0000001)
+            winLots+=OrderLots();
+         else
+         if(result<-0.0000001)
+            lossLots+=OrderLots();
+      }
+
+      if(winLots>0.00000001 &&
+         lossLots>0.00000001)
+      {
+         double maxReduceLots=
+            NormalizeLots(MathMin(winLots,lossLots));
+
+         double reduceLots=
+            NormalizeLots(MathMin(baseLot,maxReduceLots));
 
          if(reduceLots>0.0)
          {
             action="REDUCE";
             reduceText=
-               "REDUCE "+
-               (reduceSide==OP_BUY ? "BUY" : "SELL")+
-               "  |  LOTE "+DoubleToString(reduceLots,2);
+               "REDUCE GROUP  |  LOTE "+
+               DoubleToString(reduceLots,2);
             actionColor=clrGold;
             reduceColor=clrGold;
          }
