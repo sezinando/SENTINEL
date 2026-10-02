@@ -285,7 +285,7 @@ bool ReconcileSelection()
    if(t3>0)
    {
       bool valid3=false;
-      if(IsTesting())
+      if(IsCestaTesterContext())
          valid3=IsTesterBridgeTicketOpen(t3);
       else
       if(OrderSelect(t3,SELECT_BY_TICKET,MODE_TRADES))
