@@ -249,7 +249,7 @@ bool ReconcileSelection()
    {
       bool valid1=false;
 
-      if(IsTesting())
+      if(IsCestaTesterContext())
          valid1=IsTesterBridgeTicketOpen(t1);
       else
       if(OrderSelect(t1,SELECT_BY_TICKET,MODE_TRADES))
@@ -268,7 +268,7 @@ bool ReconcileSelection()
    {
       bool valid2=false;
 
-      if(IsTesting())
+      if(IsCestaTesterContext())
          valid2=IsTesterBridgeTicketOpen(t2);
       else
       if(OrderSelect(t2,SELECT_BY_TICKET,MODE_TRADES))
@@ -357,7 +357,7 @@ double GetSelectionOrderResult(int ticket)
    if(ticket<=0)
       return 0.0;
 
-   if(IsTesting())
+   if(IsCestaTesterContext())
    {
       int count=TesterBridgeCount();
 
@@ -593,6 +593,11 @@ string TypeText(int type)
       return "SELL";
 
    return "?";
+}
+
+bool IsCestaTesterContext()
+{
+   return(IsTesting() || InpTestMode);
 }
 
 bool IsSelectedMarketOrder()
@@ -1181,7 +1186,7 @@ int CollectWinningOrders(
 {
    ArrayResize(wins,0);
 
-   if(IsTesting())
+   if(IsCestaTesterContext())
    {
       int bridgeCount=TesterBridgeCount();
 
