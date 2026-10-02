@@ -10958,6 +10958,8 @@ void OnTick()
 
    UpdateTradingObjects();
 
+   PublishTesterOrderBridge();
+
    ProcessSelectedActionRequest();
 
    ManageRecovery();
@@ -10993,6 +10995,8 @@ void OnTimer()
    UpdateInterface();
 
    UpdateTradingObjects();
+
+   PublishTesterOrderBridge();
 
    ProcessSelectedActionRequest();
 
